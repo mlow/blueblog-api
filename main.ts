@@ -21,83 +21,65 @@ import {
 
 import { Author, Post } from "./types.ts";
 
-const config = dotenv({ safe: true });
-
-const client = new Client({
-  hostname: config["DB_HOST"],
-  database: config["DB_NAME"],
-  user: config["DB_USER"],
-  password: config["DB_PASSWORD"],
-  port: parseInt(config["DB_PORT"]),
-});
-
-console.log("Connecting to DB...");
-try {
-  await client.connect();
-} catch (error) {
-  console.log(`Failed to connect to database: ${error.message}`);
-  Deno.exit(1);
-}
-
 const resolvers = {
   Query: {
-    author: async (obj: any, args: any, context: any, info: any) => {
+    author: async (obj: any, args: any, ctx: Context, info: any) => {
       if (!(args.id || args.name)) {
         throw new Error("Either `id` or `name` must be supplied.");
       }
       if (args.id && args.name) {
         throw new Error("Only one of `id` or `name` can be supplied.");
       }
-      const result = await client.query(
+      const result = await ctx.db.query(
         args.name ? author_by_name(args.name) : author_by_id(args.id),
       );
       return result.rows.length ? Author.fromData(result.rows[0]) : null;
     },
-    authors: () => {
-      return client.query(authors).then((result) =>
+    authors: (obj: any, args: any, ctx: Context, info: any) => {
+      return ctx.db.query(authors).then((result) =>
         result.rows.map((row) => Author.fromData(row))
       );
     },
-    post: (obj: any, args: any, context: any, info: any) => {
-      return client.query(post_by_id(args.id)).then((result) =>
+    post: (obj: any, args: any, ctx: Context, info: any) => {
+      return ctx.db.query(post_by_id(args.id)).then((result) =>
         result.rows.length ? Post.fromData(result.rows[0]) : null
       );
     },
-    posts: () => {
-      return client.query(posts).then((result) =>
+    posts: (obj: any, args: any, ctx: Context, info: any) => {
+      return ctx.db.query(posts).then((result) =>
         result.rows.map((row) => Post.fromData(row))
       );
     },
   },
   Mutation: {
-    createAuthor: async (obj: any, args: any, context: any, info: any) => {
-      const userCheckResult = await client.query(author_by_name(args.name));
+    createAuthor: async (obj: any, args: any, ctx: Context, info: any) => {
+      const userCheckResult = await ctx.db.query(author_by_name(args.name));
       if (userCheckResult.rows.length > 0) {
         throw new Error(`An author by the name ${args.name} already exists.`);
       }
 
-      const insertResult = await client.query(create_author(args.name));
+      const insertResult = await ctx.db.query(create_author(args.name));
       return Author.fromData(insertResult.rows[0]);
     },
-    createPost: async (obj: any, { input }: any, context: any, info: any) => {
-      const userCheckResult = await client.query(author_by_id(input.author_id));
+    createPost: async (obj: any, { input }: any, ctx: Context, info: any) => {
+      const userCheckResult = await ctx.db.query(author_by_id(input.author_id));
       if (!userCheckResult.rows.length) {
         throw new Error(`No author with ID: ${input.author_id}`);
       }
 
-      const insertResult = await client.query(create_post(input));
+      const insertResult = await ctx.db.query(create_post(input));
       return Post.fromData(insertResult.rows[0]);
     },
   },
   Author: {
-    posts: async (author: Author) => {
-      const postsResult = await client.query(posts_by_author(author.id));
+    posts: async (author: Author, args: any, ctx: Context) => {
+      const postsResult = await ctx.db.query(posts_by_author(author.id));
       return postsResult.rows.map((row) => Post.fromData(row));
     },
   },
   Post: {
-    author: async (post: Post) => {
-      const authorResult = await client.query(author_by_id(post.author_id));
+    author: async (post: Post, args: any, ctx: Context) => {
+      const authorResult = await ctx.db.query(author_by_id(post.author_id));
       return Author.fromData(authorResult.rows[0]);
     },
   },
@@ -115,6 +97,24 @@ const resolvers = {
     },
   }),
 };
+
+const config = dotenv({ safe: true });
+
+const client = new Client({
+  hostname: config["DB_HOST"],
+  database: config["DB_NAME"],
+  user: config["DB_USER"],
+  password: config["DB_PASSWORD"],
+  port: parseInt(config["DB_PORT"]),
+});
+
+console.log("Connecting to DB...");
+try {
+  await client.connect();
+} catch (error) {
+  console.log(`Failed to connect to database: ${error.message}`);
+  Deno.exit(1);
+}
 
 const app = new Application();
 
@@ -137,9 +137,22 @@ const typeDefs = parse(
   {},
 );
 
+interface Context {
+  request: any;
+  response: any;
+  db: Client;
+}
+
 const GraphQLService = applyGraphQL({
   typeDefs: typeDefs,
   resolvers: resolvers,
+  context: ({ request, response }) => {
+    return {
+      "request": request,
+      "response": response,
+      "db": client,
+    } as Context;
+  },
 });
 
 app.use(GraphQLService.routes(), GraphQLService.allowedMethods());
