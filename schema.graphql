@@ -1,0 +1,82 @@
+"""
+A date and time in UTC ISO8601 format. Ex: 2020-05-28T23:12:35.459Z
+"""
+scalar DateTime
+
+"""
+An author which writes posts.
+"""
+type Author {
+  "Author ID."
+  id: ID!
+
+  "The author's name."
+  name: String!
+
+  "All posts written by this author."
+  posts: [Post!]!
+}
+
+"""
+An edit made to a post.
+"""
+type PostEdit {
+  "Post edit ID."
+  id: ID!
+
+  "The post this edit was made to."
+  post: Post!
+
+  "The date/time of this edit"
+  date: DateTime!
+  
+  "The changes made to the post in `diff -u` format."
+  diff: String!
+}
+
+"""
+A blog post.
+"""
+type Post {
+  "The ID of the post."
+  id: ID!
+
+  "The author of the post."
+  author: Author!
+
+  "The title of the post."
+  title: String!
+
+  "The content of the post."
+  content: String!
+
+  "Whether this post is currently published."
+  is_published: Boolean!
+
+  "The date the post was (or will be) published."
+  publish_date: DateTime!
+
+  # "All edits that have been made this post."
+  # edits: [PostEdit!]!
+}
+
+
+input CreatePostInput {
+  author_id: Int!
+  title: String!
+  content: String!
+  is_published: Boolean
+  publish_date: DateTime
+}
+
+type Query {
+  author(id: Int, name: String): Author
+  authors: [Author!]!
+  post(id: Int!): Post
+  posts: [Post!]!
+}
+
+type Mutation {
+  createAuthor(name: String!): Author
+  createPost(input: CreatePostInput!): Post
+}
