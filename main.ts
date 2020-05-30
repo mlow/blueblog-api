@@ -9,6 +9,8 @@ import { Client } from "https://deno.land/x/postgres/mod.ts";
 import { config as dotenv } from "https://deno.land/x/dotenv/mod.ts";
 
 import {
+  create_uuid,
+  type_by_uuid,
   author_by_id,
   author_by_name,
   post_by_id,
@@ -21,28 +23,38 @@ import {
 
 import { Author, Post } from "./types.ts";
 
+async function get_new_uuid(db: Client, type: Function) {
+  const result = await db.query(create_uuid(type));
+  if (!result.rows) {
+    throw new Error(`Could not create a new UUID for the type: ${type.name}`);
+  }
+  return result.rows[0][0];
+}
+
 const resolvers = {
   Query: {
+    node: async (obj: any, { id }: any, ctx: Context, info: any) => {
+      const result = await ctx.db.query(type_by_uuid(id));
+      if (!result.rows) return null;
+
+      switch (result.rows[0][0]) {
+        case Author.name:
+          const authorResult = await ctx.db.query(author_by_id(id));
+          return Author.fromData(authorResult.rows[0]);
+        case Post.name:
+          const postResult = await ctx.db.query(post_by_id(id));
+          return Post.fromData(postResult.rows[0]);
+        default:
+          return null;
+      }
+    },
     author: async (obj: any, args: any, ctx: Context, info: any) => {
-      if (!(args.id || args.name)) {
-        throw new Error("Either `id` or `name` must be supplied.");
-      }
-      if (args.id && args.name) {
-        throw new Error("Only one of `id` or `name` can be supplied.");
-      }
-      const result = await ctx.db.query(
-        args.name ? author_by_name(args.name) : author_by_id(args.id),
-      );
+      const result = await ctx.db.query(author_by_name(args.name));
       return result.rows.length ? Author.fromData(result.rows[0]) : null;
     },
     authors: (obj: any, args: any, ctx: Context, info: any) => {
       return ctx.db.query(authors).then((result) =>
         result.rows.map((row) => Author.fromData(row))
-      );
-    },
-    post: (obj: any, args: any, ctx: Context, info: any) => {
-      return ctx.db.query(post_by_id(args.id)).then((result) =>
-        result.rows.length ? Post.fromData(result.rows[0]) : null
       );
     },
     posts: (obj: any, args: any, ctx: Context, info: any) => {
@@ -57,8 +69,8 @@ const resolvers = {
       if (userCheckResult.rows.length > 0) {
         throw new Error(`An author by the name ${args.name} already exists.`);
       }
-
-      const insertResult = await ctx.db.query(create_author(args.name));
+      const uuid = await get_new_uuid(ctx.db, Author);
+      const insertResult = await ctx.db.query(create_author(uuid, args.name));
       return Author.fromData(insertResult.rows[0]);
     },
     createPost: async (obj: any, { input }: any, ctx: Context, info: any) => {
@@ -66,10 +78,15 @@ const resolvers = {
       if (!userCheckResult.rows.length) {
         throw new Error(`No author with ID: ${input.author_id}`);
       }
+      const uuidResult = await ctx.db.query(create_uuid(Post));
+      const uuid = uuidResult.rows[0][0];
 
-      const insertResult = await ctx.db.query(create_post(input));
+      const insertResult = await ctx.db.query(create_post(uuid, input));
       return Post.fromData(insertResult.rows[0]);
     },
+  },
+  Node: {
+    __resolveType: (obj: any) => obj.constructor.name || null,
   },
   Author: {
     posts: async (author: Author, args: any, ctx: Context) => {

@@ -4,10 +4,17 @@ A date and time in UTC ISO8601 format. Ex: 2020-05-28T23:12:35.459Z
 scalar DateTime
 
 """
+The node interface for conformal to Global Object Identification.
+"""
+interface Node {
+  "An object's globally unique ID."
+  id: ID!
+}
+
+"""
 An author which writes posts.
 """
-type Author {
-  "Author ID."
+type Author implements Node {
   id: ID!
 
   "The author's name."
@@ -20,8 +27,7 @@ type Author {
 """
 An edit made to a post.
 """
-type PostEdit {
-  "Post edit ID."
+type PostEdit implements Node {
   id: ID!
 
   "The post this edit was made to."
@@ -37,8 +43,7 @@ type PostEdit {
 """
 A blog post.
 """
-type Post {
-  "The ID of the post."
+type Post implements Node {
   id: ID!
 
   "The author of the post."
@@ -60,9 +65,27 @@ type Post {
   # edits: [PostEdit!]!
 }
 
+"""
+A post comment.
+"""
+type Comment implements Node {
+  id: ID!
+
+  "The comment."
+  comment: String!
+
+  "The name of the author of the comment, may be anonymous."
+  author: String
+
+  "The date the comment was left on."
+  published: DateTime!
+
+  "Whether the comment is hidden."
+  hidden: Boolean!
+}
 
 input CreatePostInput {
-  author_id: Int!
+  author_id: ID!
   title: String!
   content: String!
   is_published: Boolean
@@ -70,9 +93,9 @@ input CreatePostInput {
 }
 
 type Query {
-  author(id: Int, name: String): Author
+  node(id: ID!): Node
+  author(name: String!): Author
   authors: [Author!]!
-  post(id: Int!): Post
   posts: [Post!]!
 }
 

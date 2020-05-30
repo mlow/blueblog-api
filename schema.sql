@@ -1,12 +1,25 @@
+CREATE TABLE types (
+    id smallserial PRIMARY KEY,
+    type text UNIQUE
+);
+INSERT INTO types (type)
+VALUES ('Author'), ('Post'), ('PostEdit'), ('Comment');
+
+CREATE TABLE uuids (
+    uuid uuid NOT NULL DEFAULT uuid_generate_v4(),
+    type_id smallint REFERENCES types (id) NOT NULL,
+    PRIMARY KEY (uuid)
+);
+
 CREATE TABLE authors (
-    id serial NOT NULL,
-    name text UNIQUE,
+    id uuid REFERENCES uuids (uuid) NOT NULL,
+    name text UNIQUE NOT NULL,
     PRIMARY KEY (id)
 );
 
 CREATE TABLE posts (
-    id serial,
-    author_id integer REFERENCES authors (id) NOT NULL,
+    id uuid REFERENCES uuids (uuid) NOT NULL,
+    author_id uuid REFERENCES authors (id) NOT NULL,
     title text NOT NULL,
     content text NOT NULL,
     is_published boolean NOT NULL,
@@ -15,16 +28,18 @@ CREATE TABLE posts (
 );
 
 CREATE TABLE post_edits (
-    id serial NOT NULL,
-    post_id integer REFERENCES posts (id) NOT NULL,
+    id uuid REFERENCES uuids (uuid) NOT NULL,
+    serial serial,
+    post_id uuid REFERENCES posts (id) NOT NULL,
     edit_time timestamp NOT NULL DEFAULT current_timestamp,
     diff text NOT NULL,
     PRIMARY KEY (id)
 );
+CREATE INDEX post_edit_serial ON post_edits (serial);
 
 CREATE TABLE comments (
-    id serial NOT NULL,
-    post_id integer REFERENCES posts (id) NOT NULL,
+    id uuid REFERENCES uuids (uuid) NOT NULL,
+    post_id uuid REFERENCES posts (id) NOT NULL,
     comment text NOT NULL,
     author text,
     author_email text,

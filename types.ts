@@ -1,6 +1,6 @@
 export class Author {
   constructor(
-    public id: number,
+    public id: string,
     public name: string,
   ) {}
 
@@ -11,8 +11,8 @@ export class Author {
 
 export class Post {
   constructor(
-    public id: number,
-    public author_id: number,
+    public id: string,
+    public author_id: string,
     public title: string,
     public content: string,
     public is_published: boolean,
