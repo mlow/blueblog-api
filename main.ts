@@ -32,6 +32,34 @@ async function get_new_uuid(db: Client, type: Function) {
 }
 
 const resolvers = {
+  Node: {
+    __resolveType: (obj: any) => obj.constructor.name || null,
+  },
+  Author: {
+    posts: async (author: Author, args: any, ctx: Context) => {
+      const postsResult = await ctx.db.query(posts_by_author(author.id));
+      return postsResult.rows.map((row) => Post.fromData(row));
+    },
+  },
+  Post: {
+    author: async (post: Post, args: any, ctx: Context) => {
+      const authorResult = await ctx.db.query(author_by_id(post.author_id));
+      return Author.fromData(authorResult.rows[0]);
+    },
+  },
+  DateTime: new GraphQLScalarType({
+    name: "DateTime",
+    serialize(value: Date) {
+      return value.toISOString();
+    },
+    parseValue(value: any) {
+      let result = new Date(value);
+      if (result.toString() === "Invalid Date") {
+        throw new Error(`Invalid time format: ${value}`);
+      }
+      return result;
+    },
+  }),
   Query: {
     node: async (obj: any, { id }: any, ctx: Context, info: any) => {
       const result = await ctx.db.query(type_by_uuid(id));
@@ -85,34 +113,6 @@ const resolvers = {
       return Post.fromData(insertResult.rows[0]);
     },
   },
-  Node: {
-    __resolveType: (obj: any) => obj.constructor.name || null,
-  },
-  Author: {
-    posts: async (author: Author, args: any, ctx: Context) => {
-      const postsResult = await ctx.db.query(posts_by_author(author.id));
-      return postsResult.rows.map((row) => Post.fromData(row));
-    },
-  },
-  Post: {
-    author: async (post: Post, args: any, ctx: Context) => {
-      const authorResult = await ctx.db.query(author_by_id(post.author_id));
-      return Author.fromData(authorResult.rows[0]);
-    },
-  },
-  DateTime: new GraphQLScalarType({
-    name: "DateTime",
-    serialize(value: Date) {
-      return value.toISOString();
-    },
-    parseValue(value: any) {
-      let result = new Date(value);
-      if (result.toString() === "Invalid Date") {
-        throw new Error(`Invalid time format: ${value}`);
-      }
-      return result;
-    },
-  }),
 };
 
 const config = dotenv({ safe: true });
