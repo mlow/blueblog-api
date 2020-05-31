@@ -28,7 +28,8 @@ export const posts_by_author = (author_id: string) =>
   sql`
 SELECT id, author_id, title, content, is_published, publish_time
 FROM posts
-WHERE author_id = ${author_id};`;
+WHERE author_id = ${author_id}
+ORDER BY publish_time DESC;`;
 
 export const authors = sql`
 SELECT id, name
@@ -36,7 +37,8 @@ FROM authors;`;
 
 export const posts = sql`
 SELECT id, author_id, title, content, is_published, publish_time
-FROM posts;`;
+FROM posts
+ORDER BY publish_time DESC;`;
 
 export const create_author = (uuid: string, name: string) =>
   sql`
