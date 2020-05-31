@@ -63,7 +63,7 @@ const resolvers = {
   Query: {
     node: async (obj: any, { id }: any, ctx: Context, info: any) => {
       const result = await ctx.db.query(type_by_uuid(id));
-      if (!result.rows) return null;
+      if (!result.rows.length) return null;
 
       switch (result.rows[0][0]) {
         case Author.name:
@@ -136,16 +136,11 @@ try {
 const app = new Application();
 
 app.use(async (ctx, next) => {
-  await next();
-  const rt = ctx.response.headers.get("X-Response-Time");
-  console.log(`${ctx.request.method} ${ctx.request.url} - ${rt}`);
-});
-
-app.use(async (ctx, next) => {
   const start = Date.now();
   await next();
-  const ms = Date.now() - start;
-  ctx.response.headers.set("X-Response-Time", `${ms}ms`);
+  console.log(
+    `${ctx.request.method} ${ctx.request.url} - ${Date.now() - start}ms`,
+  );
 });
 
 const schemaFile = new URL("schema.graphql", import.meta.url).pathname;
@@ -160,7 +155,7 @@ interface Context {
   db: Client;
 }
 
-const GraphQLService = applyGraphQL({
+const GraphQLService = await applyGraphQL({
   typeDefs: typeDefs,
   resolvers: resolvers,
   context: ({ request, response }) => {
