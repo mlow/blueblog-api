@@ -1,12 +1,11 @@
 import { Application } from "https://deno.land/x/oak/mod.ts";
-import { applyGraphQL } from "https://deno.land/x/oak_graphql/mod.ts";
-import {
-  GraphQLScalarType,
-  parse,
-} from "https://deno.land/x/oak_graphql/deps.ts";
-
 import { Client } from "https://deno.land/x/postgres/mod.ts";
 import { config as dotenv } from "https://deno.land/x/dotenv/mod.ts";
+
+import {
+  applyGraphQL,
+  GraphQLScalarType,
+} from "./graphql.ts";
 
 import {
   create_uuid,
@@ -144,9 +143,8 @@ app.use(async (ctx, next) => {
 });
 
 const schemaFile = new URL("schema.graphql", import.meta.url).pathname;
-const typeDefs = parse(
-  new TextDecoder("utf-8").decode(await Deno.readFile(schemaFile)),
-  {},
+const typeDefs = new TextDecoder("utf-8").decode(
+  await Deno.readFile(schemaFile),
 );
 
 interface Context {
@@ -155,19 +153,18 @@ interface Context {
   db: Client;
 }
 
-const GraphQLService = await applyGraphQL({
+applyGraphQL({
+  app,
   typeDefs: typeDefs,
   resolvers: resolvers,
   context: ({ request, response }) => {
     return {
-      "request": request,
-      "response": response,
-      "db": client,
+      request,
+      response,
+      db: client,
     } as Context;
   },
 });
-
-app.use(GraphQLService.routes(), GraphQLService.allowedMethods());
 
 console.log(`Server listening at http://localhost:${config["LISTEN_PORT"]}`);
 await app.listen({ port: parseInt(config["LISTEN_PORT"]) });
