@@ -20,25 +20,25 @@ export const author_by_name = (name: string) =>
 
 export const post_by_id = (post_id: string) =>
   sql`
-SELECT id, author_id, title, content, is_published, publish_time
+SELECT id, author_id, title, content, is_published, publish_date
 FROM posts
 WHERE id = ${post_id};`;
 
 export const posts_by_author = (author_id: string) =>
   sql`
-SELECT id, author_id, title, content, is_published, publish_time
+SELECT id, author_id, title, content, is_published, publish_date
 FROM posts
 WHERE author_id = ${author_id}
-ORDER BY publish_time DESC;`;
+ORDER BY publish_date DESC;`;
 
 export const authors = sql`
 SELECT id, name
 FROM authors;`;
 
 export const posts = sql`
-SELECT id, author_id, title, content, is_published, publish_time
+SELECT id, author_id, title, content, is_published, publish_date
 FROM posts
-ORDER BY publish_time DESC;`;
+ORDER BY publish_date DESC;`;
 
 export const create_author = (uuid: string, name: string) =>
   sql`
@@ -56,7 +56,7 @@ export interface PostCreateQueryParams {
 
 export const create_post = (uuid: string, params: PostCreateQueryParams) =>
   sql`
-INSERT INTO posts (id, author_id, title, content, is_published, publish_time)
+INSERT INTO posts (id, author_id, title, content, is_published, publish_date)
 VALUES (
   ${uuid},
   ${params.author_id},
@@ -64,4 +64,4 @@ VALUES (
   ${params.content},
   ${params.is_published || false},
   ${params.publish_date || new Date()}
-) RETURNING id, author_id, title, content, is_published, publish_time;`;
+) RETURNING id, author_id, title, content, is_published, publish_date;`;

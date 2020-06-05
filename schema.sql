@@ -23,7 +23,7 @@ CREATE TABLE posts (
     title text NOT NULL,
     content text NOT NULL,
     is_published boolean NOT NULL,
-    publish_time timestamp NOT NULL DEFAULT current_timestamp,
+    publish_date timestamp NOT NULL DEFAULT current_timestamp,
     PRIMARY KEY (id)
 );
 
@@ -31,7 +31,7 @@ CREATE TABLE post_edits (
     id uuid REFERENCES uuids (uuid) NOT NULL,
     serial serial,
     post_id uuid REFERENCES posts (id) NOT NULL,
-    edit_time timestamp NOT NULL DEFAULT current_timestamp,
+    edit_date timestamp NOT NULL DEFAULT current_timestamp,
     diff text NOT NULL,
     PRIMARY KEY (id)
 );
@@ -40,6 +40,7 @@ CREATE INDEX post_edit_serial ON post_edits (serial);
 CREATE TABLE comments (
     id uuid REFERENCES uuids (uuid) NOT NULL,
     post_id uuid REFERENCES posts (id) NOT NULL,
+    date timestamp NOT NULL DEFAULT curent_timestamp,
     comment text NOT NULL,
     author text,
     author_email text,
