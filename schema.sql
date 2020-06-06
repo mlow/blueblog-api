@@ -13,7 +13,8 @@ CREATE TABLE IF NOT EXISTS uuids (
 
 CREATE TABLE IF NOT EXISTS authors (
     id uuid REFERENCES uuids (uuid) NOT NULL,
-    name text UNIQUE NOT NULL,
+    name text NOT NULL,
+    username text UNIQUE NOT NULL,
     password_hash text NOT NULL,
     PRIMARY KEY (id)
 );

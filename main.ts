@@ -100,20 +100,25 @@ const resolvers = {
     },
   },
   Mutation: {
-    createAuthor: async (obj: any, { name, password }: any, ctx: Context) => {
-      if (!password.length) {
+    createAuthor: async (obj: any, { input }: any, ctx: Context) => {
+      if (!input.password.length) {
         throw new Error("Password should not be blank.");
       }
-      const userCheckResult = await ctx.db.query(author_by_name(name));
+      if (!input.username.length) {
+        throw new Error("Username should not be blank.");
+      }
+      const userCheckResult = await ctx.db.query(
+        authenticate(input.username),
+      );
       if (userCheckResult.rows.length > 0) {
-        throw new Error(`An author by the name ${name} already exists.`);
+        throw new Error("That username is taken.");
       }
       const uuid = await get_new_uuid(ctx.db, Author);
-      const password_hash = await hash(password, {
+      const password_hash = await hash(input.password, {
         salt: crypto.getRandomValues(new Uint8Array(16)),
       });
       const insertResult = await ctx.db.query(
-        create_author(uuid, name, password_hash),
+        create_author(uuid, { ...input, password_hash }),
       );
       return Author.fromData(insertResult.rows[0]);
     },
@@ -128,19 +133,17 @@ const resolvers = {
       const insertResult = await ctx.db.query(create_post(uuid, input));
       return Post.fromData(insertResult.rows[0]);
     },
-    authenticate: async (obj: any, { author, password }: any, ctx: any) => {
-      if (!password.length) {
-        throw new Error("Password should not be blank.");
-      }
-      const authenticateResult = await ctx.db.query(authenticate(author));
+    authenticate: async (obj: any, { username, password }: any, ctx: any) => {
+      const authenticateResult = await ctx.db.query(authenticate(username));
       if (!authenticateResult.rows.length) {
-        throw new Error("Author not found.");
+        throw new Error("User not found.");
       }
-      const password_hash = authenticateResult.rows[0][0];
+      const password_hash = authenticateResult.rows[0][1];
       if (!await verify(password_hash, password)) {
         throw new Error("Password incorrect.");
       }
 
+      const id = authenticateResult.rows[0][0];
       const now: number = new Date().getTime();
       const exp: number = 24 * 60 * 60;
       const jwt = makeJwt({
@@ -149,9 +152,13 @@ const resolvers = {
           alg: "HS256",
         },
         payload: {
-          sub: author,
+          sub: id,
           iat: now,
           exp: now + (exp * 1000),
+          author: {
+            id,
+            username,
+          },
         },
       });
 
@@ -161,6 +168,7 @@ const resolvers = {
       ctx.cookies.set("jwt.header.payload", header_payload, {
         maxAge: exp,
         httpOnly: false,
+        sameSite: "strict",
       });
       ctx.cookies.set("jwt.signature", signature, {
         maxAge: exp,

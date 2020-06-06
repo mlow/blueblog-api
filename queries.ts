@@ -18,8 +18,11 @@ export const author_by_id = (author_id: string) =>
 export const author_by_name = (name: string) =>
   sql`SELECT id, name FROM authors WHERE name = ${name};`;
 
-export const authenticate = (name: string) =>
-  sql`SELECT password_hash FROM authors WHERE name = ${name};`;
+export const authenticate = (username: string) =>
+  sql`
+SELECT id, password_hash
+FROM authors
+WHERE username = LOWER(${username});`;
 
 export const post_by_id = (post_id: string) =>
   sql`
@@ -43,14 +46,19 @@ SELECT id, author_id, title, content, is_published, publish_date
 FROM posts
 ORDER BY publish_date DESC;`;
 
+export interface AuthorCreateQueryParams {
+  name: string;
+  username: string;
+  password_hash: string;
+}
+
 export const create_author = (
   uuid: string,
-  name: string,
-  password_hash: string,
+  { name, username, password_hash }: AuthorCreateQueryParams,
 ) =>
   sql`
-INSERT INTO authors (id, name, password_hash)
-VALUES (${uuid}, ${name}, ${password_hash})
+INSERT INTO authors (id, name, username, password_hash)
+VALUES (${uuid}, ${name}, LOWER(${username}), ${password_hash})
 RETURNING id, name;`;
 
 export interface PostCreateQueryParams {

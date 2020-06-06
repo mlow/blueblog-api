@@ -84,6 +84,12 @@ type Comment implements Node {
   hidden: Boolean!
 }
 
+input CreateAuthorInput {
+  name: String!
+  username: String!
+  password: String!
+}
+
 input CreatePostInput {
   author_id: ID!
   title: String!
@@ -100,7 +106,7 @@ type Query {
 }
 
 type Mutation {
-  authenticate(author: String!, password: String!): String
-  createAuthor(name: String!, password: String!): Author
+  authenticate(username: String!, password: String!): String
+  createAuthor(input: CreateAuthorInput!): Author
   createPost(input: CreatePostInput!): Post
 }
