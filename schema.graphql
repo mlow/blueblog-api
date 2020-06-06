@@ -35,7 +35,7 @@ type PostEdit implements Node {
 
   "The date/time of this edit"
   date: DateTime!
-  
+
   "The changes made to the post in `diff -u` format."
   diff: String!
 }
@@ -100,6 +100,7 @@ type Query {
 }
 
 type Mutation {
-  createAuthor(name: String!): Author
+  authenticate(author: String!, password: String!): String
+  createAuthor(name: String!, password: String!): Author
   createPost(input: CreatePostInput!): Post
 }

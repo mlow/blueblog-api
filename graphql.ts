@@ -7,7 +7,7 @@ import {
 import { graphql } from "https://cdn.pika.dev/graphql@^15.0.0";
 import {
   makeExecutableSchema,
-} from "https://cdn.pika.dev/@graphql-tools/schema@^6.0.5";
+} from "https://cdn.pika.dev/@graphql-tools/schema@^6.0.6";
 
 import { renderPlaygroundPage } from "./playground/render-playground-page.ts";
 
@@ -51,8 +51,8 @@ export const applyGraphQL = ({
   const router = new Router();
 
   router.post(path, async (ctx) => {
-    const { response, request } = ctx;
-    const contextResult = context ? context(ctx) : undefined;
+    const { response, request, cookies } = ctx;
+    const contextResult = context ? await context(ctx) : undefined;
     if (request.hasBody) {
       try {
         const body = await request.body();
@@ -89,8 +89,8 @@ export const applyGraphQL = ({
       } catch (error) {
         response.status = 500;
         response.body = {
-          error: error.message
-        }
+          error: error.message,
+        };
       }
     }
   });
