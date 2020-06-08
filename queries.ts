@@ -1,4 +1,5 @@
 import { sql } from "./utils.ts";
+import { PostEditChange } from "./types.ts";
 
 export const authenticate = (username: string) =>
   sql`
@@ -77,6 +78,13 @@ export interface PostCreateQueryParams {
   publish_date?: Date;
 }
 
+export interface PostUpdateQueryParams {
+  title: string;
+  content: string;
+  is_published: boolean;
+  publish_date: Date;
+}
+
 export const create_post = (uuid: string, params: PostCreateQueryParams) =>
   sql`
 INSERT INTO posts (id, author_id, title, content, is_published, publish_date)
@@ -89,5 +97,42 @@ VALUES (
   ${params.publish_date || new Date()}
 ) RETURNING id, author_id, title, content, is_published, publish_date;`;
 
+export const update_post = (uuid: string, params: PostUpdateQueryParams) =>
+  sql`
+UPDATE posts
+  SET title = ${params.title},
+      content = ${params.content},
+      is_published = ${params.is_published},
+      publish_date = ${params.publish_date}
+  WHERE id = ${uuid};`;
+
 export const delete_post = (uuid: string) =>
   sql`DELETE FROM posts WHERE id = ${uuid};`;
+
+//
+// PostEdits
+//
+
+export const post_edits = (post_id: string) =>
+  sql`
+SELECT id, post_id, date, changes
+FROM post_edits WHERE post_id = ${post_id}
+ORDER BY date DESC`;
+
+export const post_edit_by_id = (id: string) =>
+  sql`SELECT id, post_id, date, changes FROM post_edits WHERE id = ${id};`;
+
+export interface PostEditCreateQueryParams {
+  post_id: number;
+  date: Date;
+  changes: PostEditChange[];
+}
+
+export const create_post_edit = (
+  uuid: string,
+  { post_id, date, changes }: PostEditCreateQueryParams,
+) =>
+  sql`
+INSERT INTO post_edits (id, post_id, date, changes)
+VALUES (${uuid}, ${post_id}, ${date}, ${JSON.stringify(changes)})
+RETURNING id, post_id, date, changes;`;

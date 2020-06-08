@@ -31,13 +31,11 @@ CREATE TABLE IF NOT EXISTS posts (
 
 CREATE TABLE IF NOT EXISTS post_edits (
     id uuid REFERENCES uuids (uuid) NOT NULL,
-    serial serial,
     post_id uuid REFERENCES posts (id) NOT NULL,
-    edit_date timestamp NOT NULL DEFAULT current_timestamp,
-    diff text NOT NULL,
+    date timestamp NOT NULL DEFAULT current_timestamp,
+    changes text NOT NULL,
     PRIMARY KEY (id)
 );
-CREATE INDEX post_edit_serial ON post_edits (serial);
 
 CREATE TABLE IF NOT EXISTS comments (
     id uuid REFERENCES uuids (uuid) NOT NULL,

@@ -9,6 +9,11 @@ import { config as dotenv } from "https://deno.land/x/dotenv/mod.ts";
 import { hash, verify } from "https://deno.land/x/argon2/lib/mod.ts";
 import { makeJwt, Payload } from "https://deno.land/x/djwt/create.ts";
 import { validateJwt } from "https://deno.land/x/djwt/validate.ts";
+import { diffWords } from "https://cdn.pika.dev/diff@^4.0.2";
+import {
+  QueryConfig,
+  QueryResult,
+} from "https://deno.land/x/postgres/query.ts";
 
 import {
   applyGraphQL,
@@ -19,17 +24,33 @@ import {
   authenticate,
   create_uuid,
   type_by_uuid,
+  // Author
+  authors,
   author_by_id,
   author_by_name,
+  create_author,
+  // Post
+  posts,
   post_by_id,
   posts_by_author,
-  authors,
-  posts,
-  create_author,
   create_post,
+  update_post,
+  delete_post,
+  // PostEdit
+  post_edits,
+  post_edit_by_id,
+  create_post_edit,
 } from "./queries.ts";
 
-import { Author, Post } from "./types.ts";
+import { Author, Post, PostEdit } from "./types.ts";
+
+async function execute(
+  client: Client,
+  query: QueryConfig | string,
+): Promise<QueryResult> {
+  console.log(typeof query == "string" ? query : query.text);
+  return client.query(query);
+}
 
 async function get_new_uuid(db: Client, type: Function) {
   const result = await db.query(create_uuid(type));
@@ -45,14 +66,24 @@ const resolvers = {
   },
   Author: {
     posts: async (author: Author, args: any, ctx: Context) => {
-      const postsResult = await ctx.db.query(posts_by_author(author.id));
+      const postsResult = await execute(ctx.db, posts_by_author(author.id));
       return postsResult.rows.map((row) => Post.fromData(row));
     },
   },
   Post: {
     author: async (post: Post, args: any, ctx: Context) => {
-      const authorResult = await ctx.db.query(author_by_id(post.author_id));
+      const authorResult = await execute(ctx.db, author_by_id(post.author_id));
       return Author.fromData(authorResult.rows[0]);
+    },
+    edits: async (post: Post, args: any, ctx: Context) => {
+      const editsResult = await execute(ctx.db, post_edits(post.id));
+      return editsResult.rows.map((row) => PostEdit.fromData(row));
+    },
+  },
+  PostEdit: {
+    post: async (post_edit: PostEdit, args: any, ctx: Context) => {
+      const postResult = await execute(ctx.db, post_by_id(post_edit.post_id));
+      return Post.fromData(postResult.rows[0]);
     },
   },
   DateTime: new GraphQLScalarType({
@@ -70,31 +101,34 @@ const resolvers = {
   }),
   Query: {
     node: async (obj: any, { id }: any, ctx: Context, info: any) => {
-      const result = await ctx.db.query(type_by_uuid(id));
+      const result = await execute(ctx.db, type_by_uuid(id));
       if (!result.rows.length) return null;
 
       switch (result.rows[0][0]) {
         case Author.name:
-          const authorResult = await ctx.db.query(author_by_id(id));
+          const authorResult = await execute(ctx.db, author_by_id(id));
           return Author.fromData(authorResult.rows[0]);
         case Post.name:
-          const postResult = await ctx.db.query(post_by_id(id));
+          const postResult = await execute(ctx.db, post_by_id(id));
           return Post.fromData(postResult.rows[0]);
+        case PostEdit.name:
+          const postEditResult = await execute(ctx.db, post_edit_by_id(id));
+          return PostEdit.fromData(postEditResult.rows[0]);
         default:
           return null;
       }
     },
     author: async (obj: any, args: any, ctx: Context, info: any) => {
-      const result = await ctx.db.query(author_by_name(args.name));
+      const result = await execute(ctx.db, author_by_name(args.name));
       return result.rows.length ? Author.fromData(result.rows[0]) : null;
     },
     authors: (obj: any, args: any, ctx: Context, info: any) => {
-      return ctx.db.query(authors).then((result) =>
+      return execute(ctx.db, authors).then((result) =>
         result.rows.map((row) => Author.fromData(row))
       );
     },
     posts: (obj: any, args: any, ctx: Context, info: any) => {
-      return ctx.db.query(posts).then((result) =>
+      return execute(ctx.db, posts).then((result) =>
         result.rows.map((row) => Post.fromData(row))
       );
     },
@@ -107,7 +141,8 @@ const resolvers = {
       if (!input.username.length) {
         throw new Error("Username should not be blank.");
       }
-      const userCheckResult = await ctx.db.query(
+      const userCheckResult = await execute(
+        ctx.db,
         authenticate(input.username),
       );
       if (userCheckResult.rows.length > 0) {
@@ -117,24 +152,107 @@ const resolvers = {
       const password_hash = await hash(input.password, {
         salt: crypto.getRandomValues(new Uint8Array(16)),
       });
-      const insertResult = await ctx.db.query(
+      const insertResult = await execute(
+        ctx.db,
         create_author(uuid, { ...input, password_hash }),
       );
       return Author.fromData(insertResult.rows[0]);
     },
     createPost: async (obj: any, { input }: any, ctx: Context) => {
-      const userCheckResult = await ctx.db.query(author_by_id(input.author_id));
+      const userCheckResult = await execute(
+        ctx.db,
+        author_by_id(input.author_id),
+      );
       if (!userCheckResult.rows.length) {
         throw new Error(`No author with ID: ${input.author_id}`);
       }
-      const uuidResult = await ctx.db.query(create_uuid(Post));
-      const uuid = uuidResult.rows[0][0];
 
-      const insertResult = await ctx.db.query(create_post(uuid, input));
+      const uuid = await get_new_uuid(ctx.db, Post);
+      const insertResult = await execute(ctx.db, create_post(uuid, input));
       return Post.fromData(insertResult.rows[0]);
     },
+    updatePost: async (
+      obj: any,
+      { id, input: { title, content, is_published, publish_date } }: any,
+      ctx: Context,
+    ) => {
+      if (!ctx.jwt) {
+        throw new Error("Must be authenticated.");
+      }
+
+      const postResult = await execute(ctx.db, post_by_id(id));
+      if (!postResult.rows.length) {
+        throw new Error("No post by that ID found.");
+      }
+      const post = Post.fromData(postResult.rows[0]);
+
+      if (post.author_id != ctx.jwt.sub) {
+        throw new Error("Cannot edit someone else's post.");
+      }
+
+      if (
+        (!title || title == post.title) &&
+        (!content || content == post.content) &&
+        (!is_published || is_published == post.is_published) &&
+        (!publish_date || publish_date == post.publish_date ||
+          publish_date.getTime() == post.publish_date.getTime())
+      ) {
+        throw new Error("No changes to be made.");
+      }
+
+      if (content && content !== post.content) {
+        const changes = diffWords(post.content, content, undefined).map(
+          ({ value, count, ...rest }) => ({ text: value, ...rest }),
+        );
+
+        post.content = content;
+
+        await execute(
+          ctx.db,
+          create_post_edit(await get_new_uuid(ctx.db, PostEdit), {
+            post_id: id,
+            date: new Date(),
+            changes,
+          }),
+        );
+      }
+
+      post.title = title || post.title;
+      post.is_published = is_published || post.is_published;
+      post.publish_date = publish_date || post.publish_date;
+
+      await execute(
+        ctx.db,
+        update_post(id, {
+          title: post.title,
+          content: post.content,
+          is_published: post.is_published,
+          publish_date: post.publish_date,
+        }),
+      );
+
+      return post;
+    },
+    deletePost: async (obj: any, { id }: any, ctx: Context) => {
+      if (!ctx.jwt) {
+        throw new Error("Must be authenticated.");
+      }
+
+      const postResult = await execute(ctx.db, post_by_id(id));
+      if (!postResult.rows.length) {
+        return null;
+      }
+      const post = Post.fromData(postResult.rows[0]);
+
+      if (post.author_id != ctx.jwt.sub) {
+        throw new Error("Cannot delete someone else's post.");
+      }
+
+      await execute(ctx.db, delete_post(id));
+      return id;
+    },
     authenticate: async (obj: any, { username, password }: any, ctx: any) => {
-      const authenticateResult = await ctx.db.query(authenticate(username));
+      const authenticateResult = await execute(ctx.db, authenticate(username));
       if (!authenticateResult.rows.length) {
         throw new Error("User not found.");
       }

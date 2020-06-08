@@ -25,6 +25,20 @@ type Author implements Node {
 }
 
 """
+A change made to a post.
+"""
+type PostEditChange {
+  "A segment of text."
+  text: String!
+
+  "Whether the text was added."
+  added: Boolean
+
+  "Whether the text was removed."
+  removed: Boolean
+}
+
+"""
 An edit made to a post.
 """
 type PostEdit implements Node {
@@ -33,11 +47,11 @@ type PostEdit implements Node {
   "The post this edit was made to."
   post: Post!
 
-  "The date/time of this edit"
+  "The date/time of this edit."
   date: DateTime!
 
-  "The changes made to the post in `diff -u` format."
-  diff: String!
+  "The changes made to the post."
+  changes: [PostEditChange!]!
 }
 
 """
@@ -61,8 +75,8 @@ type Post implements Node {
   "The date the post was (or will be) published."
   publish_date: DateTime!
 
-  # "All edits that have been made this post."
-  # edits: [PostEdit!]!
+  "All edits that have been made this post from most recent to oldest."
+  edits: [PostEdit!]!
 }
 
 """
@@ -98,6 +112,13 @@ input CreatePostInput {
   publish_date: DateTime
 }
 
+input UpdatePostInput {
+  title: String
+  content: String
+  is_published: Boolean
+  publish_date: DateTime
+}
+
 type Query {
   node(id: ID!): Node
   author(name: String!): Author
@@ -109,4 +130,6 @@ type Mutation {
   authenticate(username: String!, password: String!): String
   createAuthor(input: CreateAuthorInput!): Author
   createPost(input: CreatePostInput!): Post
+  updatePost(id: ID!, input: UpdatePostInput!): Post
+  deletePost(id: ID!): ID
 }
