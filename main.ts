@@ -270,7 +270,7 @@ const resolvers = {
 
       const id = authenticateResult.rows[0][0];
       const now: number = new Date().getTime();
-      const exp: number = 24 * 60 * 60;
+      const exp: number = 24 * 60 * 60 * 1000;
       const jwt = makeJwt({
         key: config["SECRET"],
         header: {
@@ -279,7 +279,7 @@ const resolvers = {
         payload: {
           sub: id,
           iat: now,
-          exp: now + (exp * 1000),
+          exp: now + exp,
           author: {
             id,
             username,
