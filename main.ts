@@ -159,12 +159,19 @@ const resolvers = {
       return Author.fromData(insertResult.rows[0]);
     },
     createPost: async (obj: any, { input }: any, ctx: Context) => {
+      if (!ctx.jwt) {
+        throw new Error("Must be authenticated.");
+      }
       const userCheckResult = await execute(
         ctx.db,
         author_by_id(input.author_id),
       );
       if (!userCheckResult.rows.length) {
         throw new Error(`No author with ID: ${input.author_id}`);
+      }
+
+      if (input.author_id != ctx.jwt.sub) {
+        throw new Error("Cannot create a post as another author.");
       }
 
       const uuid = await get_new_uuid(ctx.db, Post);
