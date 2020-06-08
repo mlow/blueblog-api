@@ -51,7 +51,7 @@ export const applyGraphQL = ({
   const router = new Router();
 
   router.post(path, async (ctx) => {
-    const { response, request, cookies } = ctx;
+    const { response, request } = ctx;
     const contextResult = context ? await context(ctx) : undefined;
     if (request.hasBody) {
       try {
