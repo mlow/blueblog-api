@@ -7,12 +7,12 @@ VALUES ('Author'), ('Post'), ('PostEdit'), ('Comment');
 
 CREATE TABLE IF NOT EXISTS uuids (
     uuid uuid NOT NULL DEFAULT uuid_generate_v4(),
-    type_id smallint REFERENCES types (id) NOT NULL,
+    type_id smallint NOT NULL REFERENCES types (id) ON DELETE CASCADE,
     PRIMARY KEY (uuid)
 );
 
 CREATE TABLE IF NOT EXISTS authors (
-    id uuid REFERENCES uuids (uuid) NOT NULL,
+    id uuid NOT NULL REFERENCES uuids (uuid) ON DELETE CASCADE,
     name text NOT NULL,
     username text UNIQUE NOT NULL,
     password_hash text NOT NULL,
@@ -20,8 +20,8 @@ CREATE TABLE IF NOT EXISTS authors (
 );
 
 CREATE TABLE IF NOT EXISTS posts (
-    id uuid REFERENCES uuids (uuid) NOT NULL,
-    author_id uuid REFERENCES authors (id) NOT NULL,
+    id uuid NOT NULL REFERENCES uuids (uuid) ON DELETE CASCADE,
+    author_id uuid NOT NULL REFERENCES authors (id) ON DELETE CASCADE,
     title text NOT NULL,
     content text NOT NULL,
     is_published boolean NOT NULL,
@@ -30,16 +30,16 @@ CREATE TABLE IF NOT EXISTS posts (
 );
 
 CREATE TABLE IF NOT EXISTS post_edits (
-    id uuid REFERENCES uuids (uuid) NOT NULL,
-    post_id uuid REFERENCES posts (id) NOT NULL,
+    id uuid NOT NULL REFERENCES uuids (uuid) ON DELETE CASCADE,
+    post_id uuid NOT NULL REFERENCES posts (id) ON DELETE CASCADE,
     date timestamp NOT NULL DEFAULT current_timestamp,
     changes text NOT NULL,
     PRIMARY KEY (id)
 );
 
 CREATE TABLE IF NOT EXISTS comments (
-    id uuid REFERENCES uuids (uuid) NOT NULL,
-    post_id uuid REFERENCES posts (id) NOT NULL,
+    id uuid NOT NULL REFERENCES uuids (uuid) ON DELETE CASCADE,
+    post_id uuid NOT NULL REFERENCES posts (id) ON DELETE CASCADE,
     date timestamp NOT NULL DEFAULT current_timestamp,
     comment text NOT NULL,
     author text,
