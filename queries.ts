@@ -1,12 +1,6 @@
 import { sql } from "./utils.ts";
 import { PostEditChange } from "./types.ts";
 
-export const authenticate = (username: string) =>
-  sql`
-SELECT id, password_hash
-FROM authors
-WHERE username = LOWER(${username});`;
-
 export const create_uuid = (type: Function) =>
   sql`
 INSERT INTO uuids (type_id)
@@ -32,6 +26,12 @@ export const author_by_id = (author_id: string) =>
 SELECT id, name, username, password_hash
 FROM authors
 WHERE id = ${author_id};`;
+
+export const author_by_username = (username: string) =>
+  sql`
+SELECT id, name, username, password_hash
+FROM authors
+WHERE username = LOWER(${username});`;
 
 export const author_by_name = (name: string) =>
   sql`SELECT id, name FROM authors WHERE name = ${name};`;

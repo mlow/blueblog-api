@@ -21,13 +21,13 @@ import {
 } from "./graphql.ts";
 
 import {
-  authenticate,
   create_uuid,
   type_by_uuid,
   // Author
   authors,
   author_by_id,
   author_by_name,
+  author_by_username,
   create_author,
   update_author,
   // Post
@@ -144,7 +144,7 @@ const resolvers = {
       }
       const userCheckResult = await execute(
         ctx.db,
-        authenticate(input.username),
+        author_by_username(input.username),
       );
       if (userCheckResult.rows.length > 0) {
         throw new Error("That username is taken.");
@@ -298,16 +298,19 @@ const resolvers = {
       return id;
     },
     authenticate: async (obj: any, { username, password }: any, ctx: any) => {
-      const authenticateResult = await execute(ctx.db, authenticate(username));
+      const authenticateResult = await execute(
+        ctx.db,
+        author_by_username(username),
+      );
       if (!authenticateResult.rows.length) {
         throw new Error("User not found.");
       }
-      const password_hash = authenticateResult.rows[0][1];
-      if (!await verify(password_hash, password)) {
+      const author = authenticateResult.rowsOfObjects()[0];
+
+      if (!await verify(author.password_hash, password)) {
         throw new Error("Password incorrect.");
       }
 
-      const id = authenticateResult.rows[0][0];
       const now: number = new Date().getTime();
       const exp: number = 24 * 60 * 60 * 1000;
       const jwt = makeJwt({
@@ -316,12 +319,13 @@ const resolvers = {
           alg: "HS256",
         },
         payload: {
-          sub: id,
+          sub: author.id,
           iat: now,
           exp: now + exp,
           author: {
-            id,
-            username,
+            id: author.id,
+            name: author.name,
+            username: author.username,
           },
         },
       });
