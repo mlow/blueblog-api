@@ -28,7 +28,10 @@ SELECT id, name
 FROM authors;`;
 
 export const author_by_id = (author_id: string) =>
-  sql`SELECT id, name FROM authors WHERE id = ${author_id};`;
+  sql`
+SELECT id, name, username, password_hash
+FROM authors
+WHERE id = ${author_id};`;
 
 export const author_by_name = (name: string) =>
   sql`SELECT id, name FROM authors WHERE name = ${name};`;
@@ -47,6 +50,15 @@ export const create_author = (
 INSERT INTO authors (id, name, username, password_hash)
 VALUES (${uuid}, ${name}, LOWER(${username}), ${password_hash})
 RETURNING id, name;`;
+
+export const update_author = (uuid: string, params: AuthorCreateQueryParams) =>
+  sql`
+UPDATE authors
+  SET name = ${params.name},
+      username = ${params.username},
+      password_hash = ${params.password_hash}
+  WHERE id = ${uuid}
+  RETURNING id, name;`;
 
 //
 // Posts

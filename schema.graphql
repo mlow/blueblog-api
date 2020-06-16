@@ -104,6 +104,13 @@ input CreateAuthorInput {
   password: String!
 }
 
+input UpdateAuthorInput {
+  password: String!
+  name: String
+  username: String
+  new_password: String
+}
+
 input CreatePostInput {
   author_id: ID!
   title: String!
@@ -121,15 +128,16 @@ input UpdatePostInput {
 
 type Query {
   node(id: ID!): Node
-  author(name: String!): Author
+  author(name: String!): Author!
   authors: [Author!]!
   posts: [Post!]!
 }
 
 type Mutation {
-  authenticate(username: String!, password: String!): String
-  createAuthor(input: CreateAuthorInput!): Author
-  createPost(input: CreatePostInput!): Post
-  updatePost(id: ID!, input: UpdatePostInput!): Post
-  deletePost(id: ID!): ID
+  authenticate(username: String!, password: String!): String!
+  createAuthor(input: CreateAuthorInput!): Author!
+  updateAuthor(id: ID!, input: UpdateAuthorInput!): Author!
+  createPost(input: CreatePostInput!): Post!
+  updatePost(id: ID!, input: UpdatePostInput!): Post!
+  deletePost(id: ID!): ID!
 }

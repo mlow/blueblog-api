@@ -29,6 +29,7 @@ import {
   author_by_id,
   author_by_name,
   create_author,
+  update_author,
   // Post
   posts,
   post_by_id,
@@ -48,7 +49,7 @@ async function execute(
   client: Client,
   query: QueryConfig | string,
 ): Promise<QueryResult> {
-  console.log(typeof query == "string" ? query : query.text);
+  console.log((typeof query == "string" ? query : query.text) + "\n---");
   return client.query(query);
 }
 
@@ -157,6 +158,44 @@ const resolvers = {
         create_author(uuid, { ...input, password_hash }),
       );
       return Author.fromData(insertResult.rows[0]);
+    },
+    updateAuthor: async (
+      obj: any,
+      { id, input: { name, username, password, new_password } }: any,
+      ctx: Context,
+    ) => {
+      if (!ctx.jwt) {
+        throw new Error("Must be authenticated.");
+      }
+
+      if (id != ctx.jwt.sub) {
+        throw new Error("Cannot update another user's profile.");
+      }
+
+      const author = (await execute(
+        ctx.db,
+        author_by_id(id),
+      )).rowsOfObjects()[0];
+      if (!await verify(author.password_hash, password)) {
+        throw new Error("Current password is incorrect.");
+      }
+
+      let new_password_hash: string | undefined;
+      if (new_password) {
+        new_password_hash = await hash(new_password, {
+          salt: crypto.getRandomValues(new Uint8Array(16)),
+        });
+      }
+
+      const updateResult = await execute(
+        ctx.db,
+        update_author(id, {
+          name: name || author.name,
+          username: username || author.username,
+          password_hash: new_password_hash || author.password_hash,
+        }),
+      );
+      return Author.fromData(updateResult.rows[0]);
     },
     createPost: async (obj: any, { input }: any, ctx: Context) => {
       if (!ctx.jwt) {
