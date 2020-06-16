@@ -58,7 +58,7 @@ UPDATE authors
       username = ${params.username},
       password_hash = ${params.password_hash}
   WHERE id = ${uuid}
-  RETURNING id, name;`;
+  RETURNING id, name, username, password_hash;`;
 
 //
 // Posts

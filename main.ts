@@ -61,6 +61,43 @@ async function get_new_uuid(db: Client, type: Function) {
   return result.rows[0][0];
 }
 
+function set_jwt_cookies(author: any, cookies: Cookies) {
+  const now: number = new Date().getTime();
+  const exp: number = 24 * 60 * 60 * 1000;
+  const jwt = makeJwt({
+    key: config["SECRET"],
+    header: {
+      alg: "HS256",
+    },
+    payload: {
+      sub: author.id,
+      iat: now,
+      exp: now + exp,
+      author: {
+        id: author.id,
+        name: author.name,
+        username: author.username,
+      },
+    },
+  });
+
+  const jwt_parts = jwt.split(".");
+  const header_payload = jwt_parts.slice(0, 2).join(".");
+  const signature = jwt_parts[2];
+  cookies.set("jwt.header.payload", header_payload, {
+    maxAge: exp,
+    httpOnly: false,
+    sameSite: "strict",
+  });
+  cookies.set("jwt.signature", signature, {
+    maxAge: exp,
+    httpOnly: true,
+    sameSite: "strict",
+  });
+
+  return jwt;
+}
+
 const resolvers = {
   Node: {
     __resolveType: (obj: any) => obj.constructor.name || null,
@@ -195,6 +232,9 @@ const resolvers = {
           password_hash: new_password_hash || author.password_hash,
         }),
       );
+
+      set_jwt_cookies(updateResult.rowsOfObjects()[0], ctx.cookies);
+
       return Author.fromData(updateResult.rows[0]);
     },
     createPost: async (obj: any, { input }: any, ctx: Context) => {
@@ -311,40 +351,7 @@ const resolvers = {
         throw new Error("Password incorrect.");
       }
 
-      const now: number = new Date().getTime();
-      const exp: number = 24 * 60 * 60 * 1000;
-      const jwt = makeJwt({
-        key: config["SECRET"],
-        header: {
-          alg: "HS256",
-        },
-        payload: {
-          sub: author.id,
-          iat: now,
-          exp: now + exp,
-          author: {
-            id: author.id,
-            name: author.name,
-            username: author.username,
-          },
-        },
-      });
-
-      const jwt_parts = jwt.split(".");
-      const header_payload = jwt_parts.slice(0, 2).join(".");
-      const signature = jwt_parts[2];
-      ctx.cookies.set("jwt.header.payload", header_payload, {
-        maxAge: exp,
-        httpOnly: false,
-        sameSite: "strict",
-      });
-      ctx.cookies.set("jwt.signature", signature, {
-        maxAge: exp,
-        httpOnly: true,
-        sameSite: "strict",
-      });
-
-      return jwt;
+      return set_jwt_cookies(author, ctx.cookies);
     },
   },
 };
