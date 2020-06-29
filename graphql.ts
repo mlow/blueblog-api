@@ -9,7 +9,7 @@ import {
   makeExecutableSchema,
 } from "./vendor/graphql-tools/schema.js";
 
-import { renderPlaygroundPage } from "./playground/render-playground-page.ts";
+import { renderPlaygroundPage } from "./vendor/playground/render-playground-page.ts";
 
 export {
   GraphQLScalarType,
@@ -46,6 +46,7 @@ export const applyGraphQL = ({
     },
     directiveResolvers: undefined,
     schemaDirectives: undefined,
+    pruningOptions: undefined,
   });
 
   const router = new Router();
@@ -81,8 +82,6 @@ export const applyGraphQL = ({
           contextResult,
           variables,
           operationName,
-          undefined,
-          undefined,
         );
 
         response.body = result;
