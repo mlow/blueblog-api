@@ -288,7 +288,8 @@ const resolvers = {
 
       if (content && content !== post.content) {
         const changes = diffWords(post.content, content, undefined).map(
-          ({ value, count, ...rest }) => ({ text: value, ...rest }),
+          // map out the `count` variable
+          ({ value, count, ...rest }: any) => ({ text: value, ...rest }),
         );
 
         post.content = content;
