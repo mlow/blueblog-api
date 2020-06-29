@@ -4,16 +4,16 @@ import {
   Application,
 } from "https://deno.land/x/oak/mod.ts";
 
-import { graphql } from "./vendor/graphql.js";
+import { graphql } from "../vendor/graphql.js";
 import {
   makeExecutableSchema,
-} from "./vendor/graphql-tools/schema.js";
+} from "../vendor/graphql-tools/schema.js";
 
-import { renderPlaygroundPage } from "./vendor/playground/render-playground-page.ts";
+import { renderPlaygroundPage } from "../vendor/playground/render-playground-page.ts";
 
 export {
   GraphQLScalarType,
-} from "./vendor/graphql.js";
+} from "../vendor/graphql.js";
 
 export interface ResolversProps {
   Query?: any;
