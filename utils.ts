@@ -6,8 +6,8 @@ export function sql(
 ): QueryConfig {
   if (strings.length == 1) return { text: strings[0] };
 
-  let query: string[] = [];
-  let args: Array<unknown> = [];
+  const query: string[] = [];
+  const args: Array<unknown> = [];
   let argIndex = 1;
   for (let i = 0, len = strings.length; i < len; i++) {
     query.push(strings[i]);

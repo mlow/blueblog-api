@@ -4,16 +4,16 @@ import {
   Application,
 } from "https://deno.land/x/oak/mod.ts";
 
-import { graphql } from "https://cdn.pika.dev/graphql@^15.0.0";
+import { graphql } from "./vendor/graphql.js";
 import {
   makeExecutableSchema,
-} from "https://cdn.pika.dev/@graphql-tools/schema@^6.0.6";
+} from "./vendor/graphql-tools/schema.js";
 
 import { renderPlaygroundPage } from "./playground/render-playground-page.ts";
 
 export {
   GraphQLScalarType,
-} from "https://cdn.pika.dev/graphql@^15.0.0";
+} from "./vendor/graphql.js";
 
 export interface ResolversProps {
   Query?: any;
@@ -42,7 +42,7 @@ export const applyGraphQL = ({
     typeDefs,
     resolvers,
     logger: {
-      log: (err) => console.log(err),
+      log: (err: any) => console.log(err),
     },
     directiveResolvers: undefined,
     schemaDirectives: undefined,

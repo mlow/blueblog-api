@@ -9,7 +9,7 @@ import { config as dotenv } from "https://deno.land/x/dotenv/mod.ts";
 import { hash, verify } from "https://deno.land/x/argon2/lib/mod.ts";
 import { makeJwt, Payload } from "https://deno.land/x/djwt/create.ts";
 import { validateJwt } from "https://deno.land/x/djwt/validate.ts";
-import { diffWords } from "https://cdn.pika.dev/diff@^4.0.2";
+import { diffWords } from "./vendor/diff.js";
 import {
   QueryConfig,
   QueryResult,
@@ -425,7 +425,7 @@ applyGraphQL({
         }
 
         const validatedJwt = await validateJwt(full_jwt, config["SECRET"]);
-        if (validatedJwt) {
+        if (validatedJwt.isValid) {
           jwt = validatedJwt.payload;
         }
       } catch (error) {
