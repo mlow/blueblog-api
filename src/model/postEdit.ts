@@ -39,7 +39,7 @@ export class PostEdit {
     public changes: PostEditChange[]
   ) {}
 
-  getPost(): Promise<Post> {
+  getPost(): Promise<Post | undefined> {
     return Post.byId(this.post_id);
   }
 
@@ -53,9 +53,11 @@ export class PostEdit {
     return PostEdit.fromRawData(result[0]);
   }
 
-  static async byId(id: string): Promise<PostEdit> {
+  static async byId(id: string): Promise<PostEdit | undefined> {
     const result = await execute(POST_EDIT_BY_ID(id));
-    return PostEdit.fromRawData(result[0]);
+    if (result.length) {
+      return PostEdit.fromRawData(result[0]);
+    }
   }
 
   static async allByPost(post_id: string): Promise<PostEdit[]> {

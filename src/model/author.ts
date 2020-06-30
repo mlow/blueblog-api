@@ -98,18 +98,24 @@ export class Author {
     return result.map((row) => Author.fromRawData(row));
   }
 
-  static async byID(id: string): Promise<Author> {
+  static async byID(id: string): Promise<Author | undefined> {
     const result = await execute(AUTHOR_BY_ID(id));
-    return Author.fromRawData(result[0]);
+    if (result.length) {
+      return Author.fromRawData(result[0]);
+    }
   }
 
-  static async byName(name: string): Promise<Author> {
+  static async byName(name: string): Promise<Author | undefined> {
     const result = await execute(AUTHOR_BY_NAME(name));
-    return Author.fromRawData(result[0]);
+    if (result.length) {
+      return Author.fromRawData(result[0]);
+    }
   }
 
-  static async byUsername(username: string): Promise<Author> {
+  static async byUsername(username: string): Promise<Author | undefined> {
     const result = await execute(AUTHOR_BY_USERNAME(username));
-    return Author.fromRawData(result[0]);
+    if (result.length) {
+      return Author.fromRawData(result[0]);
+    }
   }
 }

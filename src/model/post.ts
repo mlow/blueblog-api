@@ -68,7 +68,7 @@ export class Post {
     public publish_date: Date
   ) {}
 
-  getAuthor(): Promise<Author> {
+  getAuthor(): Promise<Author | undefined> {
     return Author.byID(this.author_id);
   }
 
@@ -131,9 +131,11 @@ export class Post {
     return result.map((row) => Post.fromRawData(row));
   }
 
-  static async byId(id: string): Promise<Post> {
+  static async byId(id: string): Promise<Post | undefined> {
     const result = await execute(POST_BY_ID(id));
-    return Post.fromRawData(result[0]);
+    if (result.length) {
+      return Post.fromRawData(result[0]);
+    }
   }
 
   static async allByAuthor(author_id: string): Promise<Post[]> {
