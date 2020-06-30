@@ -1,6 +1,7 @@
 import gql from "../../vendor/graphql-tag.js";
 import { verify } from "https://deno.land/x/argon2/lib/mod.ts";
 
+import { Context } from "./index.ts";
 import {
   author_by_username,
 } from "../queries.ts";
@@ -14,7 +15,11 @@ export const typeDefs = gql`
 
 export const resolvers = {
   Mutation: {
-    authenticate: async (obj: any, { username, password }: any, ctx: any) => {
+    authenticate: async (
+      obj: any,
+      { username, password }: any,
+      ctx: Context,
+    ) => {
       const authenticateResult = await execute(
         ctx.db,
         author_by_username(username),

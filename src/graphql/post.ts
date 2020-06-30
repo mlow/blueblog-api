@@ -1,6 +1,7 @@
 import gql from "../../vendor/graphql-tag.js";
 import { diffWords } from "../../vendor/diff.js";
 
+import { Context } from "./index.ts";
 import {
   // Author
   author_by_id,
@@ -14,7 +15,7 @@ import {
   post_edits,
   create_post_edit,
 } from "../queries.ts";
-import { Context, Author, Post, PostEdit } from "../types.ts";
+import { Author, Post, PostEdit } from "../types.ts";
 import { execute, get_new_uuid } from "../utils.ts";
 
 export const typeDefs = gql`

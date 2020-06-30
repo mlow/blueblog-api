@@ -1,6 +1,7 @@
 import gql from "../../vendor/graphql-tag.js";
 import { hash, verify } from "https://deno.land/x/argon2/lib/mod.ts";
 
+import { Context } from "./index.ts";
 import { execute, set_jwt_cookies } from "../utils.ts";
 import {
   authors,
@@ -11,7 +12,7 @@ import {
   update_author,
   posts_by_author,
 } from "../queries.ts";
-import { Context, Author, Post } from "../types.ts";
+import { Author, Post } from "../types.ts";
 import { get_new_uuid } from "../utils.ts";
 
 export const typeDefs = gql`

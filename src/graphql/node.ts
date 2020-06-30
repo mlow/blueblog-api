@@ -1,12 +1,13 @@
 import gql from "../../vendor/graphql-tag.js";
 
+import { Context } from "./index.ts";
 import {
   type_by_uuid,
   author_by_id,
   post_by_id,
   post_edit_by_id,
 } from "../queries.ts";
-import { Context, Author, Post, PostEdit } from "../types.ts";
+import { Author, Post, PostEdit } from "../types.ts";
 import { execute } from "../utils.ts";
 
 export const typeDefs = gql`

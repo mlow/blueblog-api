@@ -6,12 +6,11 @@ import { config as dotenv } from "https://deno.land/x/dotenv/mod.ts";
 import { Payload } from "https://deno.land/x/djwt/create.ts";
 import { validateJwt } from "https://deno.land/x/djwt/validate.ts";
 
-import { Context } from "./types.ts";
 import {
   applyGraphQL,
 } from "./graphql.ts";
 
-import { typeDefs, resolvers } from "./graphql/index.ts";
+import { Context, typeDefs, resolvers } from "./graphql/index.ts";
 
 export const config = dotenv({ safe: true });
 
