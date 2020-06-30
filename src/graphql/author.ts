@@ -12,7 +12,7 @@ import {
   update_author,
   posts_by_author,
 } from "../queries.ts";
-import { Author, Post } from "../types.ts";
+import { Author, Post } from "../model/index.ts";
 import { get_new_uuid } from "../utils.ts";
 
 export const typeDefs = gql`

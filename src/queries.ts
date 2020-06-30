@@ -1,5 +1,5 @@
 import { sql } from "./utils.ts";
-import { PostEditChange } from "./types.ts";
+import { PostEditChange } from "./model/index.ts";
 
 export const create_uuid = (type: Function) =>
   sql`

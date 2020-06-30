@@ -5,7 +5,7 @@ import {
   post_by_id,
 } from "../queries.ts";
 import { execute } from "../utils.ts";
-import { Post, PostEdit } from "../types.ts";
+import { Post, PostEdit } from "../model/index.ts";
 
 export const typeDefs = gql`
   """

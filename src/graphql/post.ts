@@ -15,7 +15,7 @@ import {
   post_edits,
   create_post_edit,
 } from "../queries.ts";
-import { Author, Post, PostEdit } from "../types.ts";
+import { Author, Post, PostEdit } from "../model/index.ts";
 import { execute, get_new_uuid } from "../utils.ts";
 
 export const typeDefs = gql`
