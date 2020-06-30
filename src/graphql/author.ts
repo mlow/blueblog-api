@@ -101,11 +101,11 @@ export const resolvers = {
       { id, input: { name, username, password, new_password } }: any,
       ctx: Context,
     ) => {
-      if (!ctx.jwt) {
+      if (!ctx.auth) {
         throw new Error("Must be authenticated.");
       }
 
-      if (id != ctx.jwt.sub) {
+      if (id != ctx.auth.sub) {
         throw new Error("Cannot update another user's profile.");
       }
 

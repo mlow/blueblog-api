@@ -1,6 +1,6 @@
-import { Client } from "https://deno.land/x/postgres/mod.ts";
-import { Payload } from "https://deno.land/x/djwt/create.ts";
-import { Request, Response, Cookies } from "https://deno.land/x/oak/mod.ts";
+export {
+  Context,
+} from "https://deno.land/x/oak/mod.ts";
 
 import {
   mergeTypeDefs,
@@ -36,14 +36,6 @@ import {
   typeDefs as postEditTypes,
   resolvers as postEditResolvers,
 } from "./postEdit.ts";
-
-export interface Context {
-  request: Request;
-  response: Response;
-  cookies: Cookies;
-  db: Client;
-  jwt?: Payload;
-}
 
 export const typeDefs = mergeTypeDefs([
   scalarTypes,

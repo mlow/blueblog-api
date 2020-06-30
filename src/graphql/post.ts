@@ -90,7 +90,7 @@ export const resolvers = {
   },
   Mutation: {
     createPost: async (obj: any, { input }: any, ctx: Context) => {
-      if (!ctx.jwt) {
+      if (!ctx.auth) {
         throw new Error("Must be authenticated.");
       }
       const userCheckResult = await execute(
@@ -101,7 +101,7 @@ export const resolvers = {
         throw new Error(`No author with ID: ${input.author_id}`);
       }
 
-      if (input.author_id != ctx.jwt.sub) {
+      if (input.author_id != ctx.auth.sub) {
         throw new Error("Cannot create a post as another author.");
       }
 
@@ -114,7 +114,7 @@ export const resolvers = {
       { id, input: { title, content, is_published, publish_date } }: any,
       ctx: Context,
     ) => {
-      if (!ctx.jwt) {
+      if (!ctx.auth) {
         throw new Error("Must be authenticated.");
       }
 
@@ -124,7 +124,7 @@ export const resolvers = {
       }
       const post = Post.fromData(postResult.rows[0]);
 
-      if (post.author_id != ctx.jwt.sub) {
+      if (post.author_id != ctx.auth.sub) {
         throw new Error("Cannot edit someone else's post.");
       }
 
@@ -174,7 +174,7 @@ export const resolvers = {
       return post;
     },
     deletePost: async (obj: any, { id }: any, ctx: Context) => {
-      if (!ctx.jwt) {
+      if (!ctx.auth) {
         throw new Error("Must be authenticated.");
       }
 
@@ -184,7 +184,7 @@ export const resolvers = {
       }
       const post = Post.fromData(postResult.rows[0]);
 
-      if (post.author_id != ctx.jwt.sub) {
+      if (post.author_id != ctx.auth.sub) {
         throw new Error("Cannot delete someone else's post.");
       }
 

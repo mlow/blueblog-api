@@ -4,13 +4,19 @@ import {
 import { Client } from "https://deno.land/x/postgres/mod.ts";
 import { config as dotenv } from "https://deno.land/x/dotenv/mod.ts";
 import { Payload } from "https://deno.land/x/djwt/create.ts";
-import { validateJwt } from "https://deno.land/x/djwt/validate.ts";
 
-import {
-  applyGraphQL,
-} from "./graphql.ts";
+import { applyGraphQL } from "./graphql.ts";
+import { applyAuth } from "./auth.ts";
+import { typeDefs, resolvers } from "./graphql/index.ts";
 
-import { Context, typeDefs, resolvers } from "./graphql/index.ts";
+declare module "https://deno.land/x/oak/mod.ts" {
+  export interface Context {
+    // any per-request state
+    rstate: any;
+    db: Client;
+    auth?: Payload;
+  }
+}
 
 export const config = dotenv({ safe: true });
 
@@ -33,6 +39,14 @@ try {
 const app = new Application();
 
 app.use(async (ctx, next) => {
+  ctx.rstate = {};
+  ctx.db = client;
+  await next();
+});
+
+applyAuth(app);
+
+app.use(async (ctx, next) => {
   const start = Date.now();
   await next();
   console.log(
@@ -44,46 +58,6 @@ applyGraphQL({
   app,
   typeDefs: typeDefs,
   resolvers: resolvers,
-  context: async ({ request, response, cookies }) => {
-    let jwt: Payload | undefined;
-    const auth = request.headers.get("Authorization");
-    if (auth) {
-      const auth_parts = auth.split(" ");
-      if (auth_parts.length !== 2 || auth_parts[0] !== "Bearer") {
-        throw new Error("Malformed authorization header.");
-      }
-      const token_parts = auth_parts[1].split(".");
-      try {
-        let full_jwt: string;
-        if (token_parts.length == 2) {
-          const signature = cookies.get("jwt.signature");
-          if (!signature) {
-            throw new Error("Malformed JWT.");
-          }
-          full_jwt = `${auth_parts[1]}.${signature}`;
-        } else if (token_parts.length == 3) {
-          full_jwt = auth_parts[1];
-        } else {
-          throw new Error("Malformed JWT.");
-        }
-
-        const validatedJwt = await validateJwt(full_jwt, config["SECRET"]);
-        if (validatedJwt.isValid) {
-          jwt = validatedJwt.payload;
-        }
-      } catch (error) {
-        throw error;
-      }
-    }
-
-    return {
-      request,
-      response,
-      cookies,
-      db: client,
-      jwt,
-    } as Context;
-  },
 });
 
 console.log(`Server listening at http://localhost:${config["LISTEN_PORT"]}`);
