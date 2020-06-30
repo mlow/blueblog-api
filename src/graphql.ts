@@ -9,12 +9,6 @@ import {
   makeExecutableSchema,
 } from "../vendor/graphql-tools/schema.js";
 
-import { renderPlaygroundPage } from "../vendor/playground/render-playground-page.ts";
-
-export {
-  GraphQLScalarType,
-} from "../vendor/graphql.js";
-
 export interface ResolversProps {
   Query?: any;
   Mutation?: any;
@@ -27,7 +21,6 @@ export interface ApplyGraphQLOptions {
   typeDefs: any;
   resolvers: ResolversProps;
   context?: (ctx: RouterContext) => any;
-  playground?: boolean;
 }
 
 export const applyGraphQL = ({
@@ -36,7 +29,6 @@ export const applyGraphQL = ({
   typeDefs,
   resolvers,
   context,
-  playground = true,
 }: ApplyGraphQLOptions) => {
   const schema = makeExecutableSchema({
     typeDefs,
@@ -93,18 +85,6 @@ export const applyGraphQL = ({
       }
     }
   });
-
-  if (playground) {
-    router.get(path, async ({ request, response }) => {
-      if (request.accepts("text/html")) {
-        const playground = renderPlaygroundPage({
-          endpoint: request.url.origin + path,
-        });
-        response.status = 200;
-        response.body = playground;
-      }
-    });
-  }
 
   app.use(router.routes());
   app.use(router.allowedMethods());
