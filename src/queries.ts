@@ -44,7 +44,7 @@ export interface AuthorCreateQueryParams {
 
 export const create_author = (
   uuid: string,
-  { name, username, password_hash }: AuthorCreateQueryParams,
+  { name, username, password_hash }: AuthorCreateQueryParams
 ) =>
   sql`
 INSERT INTO authors (id, name, username, password_hash)
@@ -142,7 +142,7 @@ export interface PostEditCreateQueryParams {
 
 export const create_post_edit = (
   uuid: string,
-  { post_id, date, changes }: PostEditCreateQueryParams,
+  { post_id, date, changes }: PostEditCreateQueryParams
 ) =>
   sql`
 INSERT INTO post_edits (id, post_id, date, changes)

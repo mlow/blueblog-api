@@ -9,7 +9,7 @@ export class PostEdit {
     public id: string,
     public post_id: string,
     public date: Date,
-    public changes: PostEditChange[],
+    public changes: PostEditChange[]
   ) {}
 
   static fromData(row: any[]): PostEdit {

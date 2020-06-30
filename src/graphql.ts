@@ -5,9 +5,7 @@ import {
 } from "https://deno.land/x/oak/mod.ts";
 
 import { graphql } from "../vendor/graphql.js";
-import {
-  makeExecutableSchema,
-} from "../vendor/graphql-tools/schema.js";
+import { makeExecutableSchema } from "../vendor/graphql-tools/schema.js";
 
 export interface ResolversProps {
   Query?: any;
@@ -73,7 +71,7 @@ export const applyGraphQL = ({
           resolvers,
           contextResult,
           variables,
-          operationName,
+          operationName
         );
 
         response.body = result;

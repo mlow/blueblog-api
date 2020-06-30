@@ -5,7 +5,7 @@ export class Post {
     public title: string,
     public content: string,
     public is_published: boolean,
-    public publish_date: Date,
+    public publish_date: Date
   ) {}
 
   static fromData(row: any[]): Post {

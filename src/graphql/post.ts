@@ -73,17 +73,17 @@ export const typeDefs = gql`
 export const resolvers = {
   Post: {
     author: async (post: Post, args: any, ctx: Context) => {
-      const authorResult = await execute(ctx.db, author_by_id(post.author_id));
+      const authorResult = await execute(author_by_id(post.author_id));
       return Author.fromData(authorResult.rows[0]);
     },
     edits: async (post: Post, args: any, ctx: Context) => {
-      const editsResult = await execute(ctx.db, post_edits(post.id));
+      const editsResult = await execute(post_edits(post.id));
       return editsResult.rows.map((row) => PostEdit.fromData(row));
     },
   },
   Query: {
     posts: (obj: any, args: any, ctx: Context, info: any) => {
-      return execute(ctx.db, posts).then((result) =>
+      return execute(posts).then((result) =>
         result.rows.map((row) => Post.fromData(row))
       );
     },
@@ -93,10 +93,7 @@ export const resolvers = {
       if (!ctx.auth) {
         throw new Error("Must be authenticated.");
       }
-      const userCheckResult = await execute(
-        ctx.db,
-        author_by_id(input.author_id),
-      );
+      const userCheckResult = await execute(author_by_id(input.author_id));
       if (!userCheckResult.rows.length) {
         throw new Error(`No author with ID: ${input.author_id}`);
       }
@@ -105,20 +102,20 @@ export const resolvers = {
         throw new Error("Cannot create a post as another author.");
       }
 
-      const uuid = await get_new_uuid(ctx.db, Post);
-      const insertResult = await execute(ctx.db, create_post(uuid, input));
+      const uuid = await get_new_uuid(Post);
+      const insertResult = await execute(create_post(uuid, input));
       return Post.fromData(insertResult.rows[0]);
     },
     updatePost: async (
       obj: any,
       { id, input: { title, content, is_published, publish_date } }: any,
-      ctx: Context,
+      ctx: Context
     ) => {
       if (!ctx.auth) {
         throw new Error("Must be authenticated.");
       }
 
-      const postResult = await execute(ctx.db, post_by_id(id));
+      const postResult = await execute(post_by_id(id));
       if (!postResult.rows.length) {
         throw new Error("No post by that ID found.");
       }
@@ -142,18 +139,17 @@ export const resolvers = {
       if (content && content !== post.content) {
         const changes = diffWords(post.content, content, undefined).map(
           // map out the `count` variable
-          ({ value, count, ...rest }: any) => ({ text: value, ...rest }),
+          ({ value, count, ...rest }: any) => ({ text: value, ...rest })
         );
 
         post.content = content;
 
         await execute(
-          ctx.db,
-          create_post_edit(await get_new_uuid(ctx.db, PostEdit), {
+          create_post_edit(await get_new_uuid(PostEdit), {
             post_id: id,
             date: new Date(),
             changes,
-          }),
+          })
         );
       }
 
@@ -162,13 +158,12 @@ export const resolvers = {
       post.publish_date = publish_date || post.publish_date;
 
       await execute(
-        ctx.db,
         update_post(id, {
           title: post.title,
           content: post.content,
           is_published: post.is_published,
           publish_date: post.publish_date,
-        }),
+        })
       );
 
       return post;
@@ -178,7 +173,7 @@ export const resolvers = {
         throw new Error("Must be authenticated.");
       }
 
-      const postResult = await execute(ctx.db, post_by_id(id));
+      const postResult = await execute(post_by_id(id));
       if (!postResult.rows.length) {
         return null;
       }
@@ -188,7 +183,7 @@ export const resolvers = {
         throw new Error("Cannot delete someone else's post.");
       }
 
-      await execute(ctx.db, delete_post(id));
+      await execute(delete_post(id));
       return id;
     },
   },

@@ -30,18 +30,18 @@ export const resolvers = {
   },
   Query: {
     node: async (obj: any, { id }: any, ctx: Context, info: any) => {
-      const result = await execute(ctx.db, type_by_uuid(id));
+      const result = await execute(type_by_uuid(id));
       if (!result.rows.length) return null;
 
       switch (result.rows[0][0]) {
         case Author.name:
-          const authorResult = await execute(ctx.db, author_by_id(id));
+          const authorResult = await execute(author_by_id(id));
           return Author.fromData(authorResult.rows[0]);
         case Post.name:
-          const postResult = await execute(ctx.db, post_by_id(id));
+          const postResult = await execute(post_by_id(id));
           return Post.fromData(postResult.rows[0]);
         case PostEdit.name:
-          const postEditResult = await execute(ctx.db, post_edit_by_id(id));
+          const postEditResult = await execute(post_edit_by_id(id));
           return PostEdit.fromData(postEditResult.rows[0]);
         default:
           return null;

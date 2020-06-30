@@ -56,17 +56,17 @@ export const typeDefs = gql`
 export const resolvers = {
   Author: {
     posts: async (author: Author, args: any, ctx: Context) => {
-      const postsResult = await execute(ctx.db, posts_by_author(author.id));
+      const postsResult = await execute(posts_by_author(author.id));
       return postsResult.rows.map((row) => Post.fromData(row));
     },
   },
   Query: {
     author: async (obj: any, args: any, ctx: Context, info: any) => {
-      const result = await execute(ctx.db, author_by_name(args.name));
+      const result = await execute(author_by_name(args.name));
       return result.rows.length ? Author.fromData(result.rows[0]) : null;
     },
     authors: (obj: any, args: any, ctx: Context, info: any) => {
-      return execute(ctx.db, authors).then((result) =>
+      return execute(authors).then((result) =>
         result.rows.map((row) => Author.fromData(row))
       );
     },
@@ -79,27 +79,23 @@ export const resolvers = {
       if (!input.username.length) {
         throw new Error("Username should not be blank.");
       }
-      const userCheckResult = await execute(
-        ctx.db,
-        author_by_username(input.username),
-      );
+      const userCheckResult = await execute(author_by_username(input.username));
       if (userCheckResult.rows.length > 0) {
         throw new Error("That username is taken.");
       }
-      const uuid = await get_new_uuid(ctx.db, Author);
+      const uuid = await get_new_uuid(Author);
       const password_hash = await hash(input.password, {
         salt: crypto.getRandomValues(new Uint8Array(16)),
       });
       const insertResult = await execute(
-        ctx.db,
-        create_author(uuid, { ...input, password_hash }),
+        create_author(uuid, { ...input, password_hash })
       );
       return Author.fromData(insertResult.rows[0]);
     },
     updateAuthor: async (
       obj: any,
       { id, input: { name, username, password, new_password } }: any,
-      ctx: Context,
+      ctx: Context
     ) => {
       if (!ctx.auth) {
         throw new Error("Must be authenticated.");
@@ -109,9 +105,7 @@ export const resolvers = {
         throw new Error("Cannot update another user's profile.");
       }
 
-      const author = (
-        await execute(ctx.db, author_by_id(id))
-      ).rowsOfObjects()[0];
+      const author = (await execute(author_by_id(id))).rowsOfObjects()[0];
       if (!(await verify(author.password_hash, password))) {
         throw new Error("Current password is incorrect.");
       }
@@ -124,12 +118,11 @@ export const resolvers = {
       }
 
       const updateResult = await execute(
-        ctx.db,
         update_author(id, {
           name: name || author.name,
           username: username || author.username,
           password_hash: new_password_hash || author.password_hash,
-        }),
+        })
       );
 
       set_jwt_cookies(updateResult.rowsOfObjects()[0], ctx.cookies);

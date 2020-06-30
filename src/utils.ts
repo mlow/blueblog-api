@@ -1,5 +1,6 @@
 import { Cookies } from "https://deno.land/x/oak/mod.ts";
-import { Client } from "https://deno.land/x/postgres/mod.ts";
+import { pool } from "./main.ts";
+import { PoolClient } from "https://deno.land/x/postgres/client.ts";
 import {
   QueryConfig,
   QueryResult,
@@ -37,11 +38,15 @@ export function sql(
 }
 
 export async function execute(
-  client: Client,
   query: QueryConfig | string,
+  client?: PoolClient
 ): Promise<QueryResult> {
   console.log((typeof query == "string" ? query : query.text) + "\n---");
-  return client.query(query);
+  if (client) {
+    return client.query(query);
+  } else {
+    return pool.query(query);
+  }
 }
 
 export function set_jwt_cookies(author: any, cookies: Cookies) {
@@ -81,8 +86,8 @@ export function set_jwt_cookies(author: any, cookies: Cookies) {
   return jwt;
 }
 
-export async function get_new_uuid(db: Client, type: Function) {
-  const result = await db.query(create_uuid(type));
+export async function get_new_uuid(type: Function) {
+  const result = await execute(create_uuid(type));
   if (!result.rows) {
     throw new Error(`Could not create a new UUID for the type: ${type.name}`);
   }

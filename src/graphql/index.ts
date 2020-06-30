@@ -10,10 +10,7 @@ import {
   resolvers as scalarResolvers,
 } from "./scalars.ts";
 
-import {
-  typeDefs as nodeTypes,
-  resolvers as nodeResolvers,
-} from "./node.ts";
+import { typeDefs as nodeTypes, resolvers as nodeResolvers } from "./node.ts";
 
 import {
   typeDefs as authTypes,
@@ -25,10 +22,7 @@ import {
   resolvers as authorResolvers,
 } from "./author.ts";
 
-import {
-  typeDefs as postTypes,
-  resolvers as postResolvers,
-} from "./post.ts";
+import { typeDefs as postTypes, resolvers as postResolvers } from "./post.ts";
 
 import {
   typeDefs as postEditTypes,
