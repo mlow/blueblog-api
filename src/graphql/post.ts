@@ -90,9 +90,7 @@ export const resolvers = {
       if (ctx.author.id != post.author_id) {
         throw new Error("You cannot edit another author's post.");
       }
-
-      post.update(input);
-      return post;
+      return post.update(input);
     },
     deletePost: async (obj: any, { id }: any, ctx: Context) => {
       if (!ctx.author) {
