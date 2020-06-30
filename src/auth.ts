@@ -2,6 +2,8 @@ import { Application } from "https://deno.land/x/oak/mod.ts";
 import { validateJwt } from "https://deno.land/x/djwt/validate.ts";
 import { config } from "./main.ts";
 
+import { Author } from "./model/author.ts";
+
 export function applyAuth(app: Application) {
   app.use(async (ctx, next) => {
     const { request, cookies } = ctx;
@@ -28,8 +30,8 @@ export function applyAuth(app: Application) {
       }
 
       const validatedJwt = await validateJwt(full_jwt, config["SECRET"]);
-      if (validatedJwt.isValid) {
-        ctx.auth = validatedJwt.payload;
+      if (validatedJwt.isValid && validatedJwt?.payload?.sub) {
+        ctx.author = await Author.byID(validatedJwt.payload.sub);
       } else {
         throw new Error("Invalid JWT.");
       }

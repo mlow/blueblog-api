@@ -1,22 +1,7 @@
 import gql from "../../vendor/graphql-tag.js";
-import { diffWords } from "../../vendor/diff.js";
 
 import { Context } from "./index.ts";
-import {
-  // Author
-  author_by_id,
-  // Post
-  posts,
-  post_by_id,
-  create_post,
-  update_post,
-  delete_post,
-  // PostEdit
-  post_edits,
-  create_post_edit,
-} from "../queries.ts";
-import { Author, Post, PostEdit } from "../model/index.ts";
-import { execute, get_new_uuid } from "../utils.ts";
+import { Post } from "../model/index.ts";
 
 export const typeDefs = gql`
   """
@@ -45,7 +30,6 @@ export const typeDefs = gql`
   }
 
   input CreatePostInput {
-    author_id: ID!
     title: String!
     content: String!
     is_published: Boolean
@@ -60,6 +44,7 @@ export const typeDefs = gql`
   }
 
   type Query {
+    post(id: ID!): Post
     posts: [Post!]!
   }
 
@@ -72,118 +57,56 @@ export const typeDefs = gql`
 
 export const resolvers = {
   Post: {
-    author: async (post: Post, args: any, ctx: Context) => {
-      const authorResult = await execute(author_by_id(post.author_id));
-      return Author.fromData(authorResult.rows[0]);
+    author: (post: Post) => {
+      return post.getAuthor();
     },
-    edits: async (post: Post, args: any, ctx: Context) => {
-      const editsResult = await execute(post_edits(post.id));
-      return editsResult.rows.map((row) => PostEdit.fromData(row));
+    edits: async (post: Post) => {
+      return post.getEdits();
     },
   },
   Query: {
-    posts: (obj: any, args: any, ctx: Context, info: any) => {
-      return execute(posts).then((result) =>
-        result.rows.map((row) => Post.fromData(row))
-      );
+    post: (obj: any, args: any) => {
+      return Post.byId(args.id);
+    },
+    posts: () => {
+      return Post.all();
     },
   },
   Mutation: {
     createPost: async (obj: any, { input }: any, ctx: Context) => {
-      if (!ctx.auth) {
+      if (!ctx.author) {
         throw new Error("Must be authenticated.");
       }
-      const userCheckResult = await execute(author_by_id(input.author_id));
-      if (!userCheckResult.rows.length) {
-        throw new Error(`No author with ID: ${input.author_id}`);
-      }
-
-      if (input.author_id != ctx.auth.sub) {
-        throw new Error("Cannot create a post as another author.");
-      }
-
-      const uuid = await get_new_uuid(Post);
-      const insertResult = await execute(create_post(uuid, input));
-      return Post.fromData(insertResult.rows[0]);
+      return await Post.create(ctx.author, input);
     },
-    updatePost: async (
-      obj: any,
-      { id, input: { title, content, is_published, publish_date } }: any,
-      ctx: Context
-    ) => {
-      if (!ctx.auth) {
+    updatePost: async (obj: any, { id, input }: any, ctx: Context) => {
+      if (!ctx.author) {
         throw new Error("Must be authenticated.");
       }
-
-      const postResult = await execute(post_by_id(id));
-      if (!postResult.rows.length) {
-        throw new Error("No post by that ID found.");
+      const post = await Post.byId(id);
+      if (!post) {
+        throw new Error("No post with that ID found.");
       }
-      const post = Post.fromData(postResult.rows[0]);
-
-      if (post.author_id != ctx.auth.sub) {
-        throw new Error("Cannot edit someone else's post.");
+      if (ctx.author.id != post.author_id) {
+        throw new Error("You cannot edit another author's post.");
       }
 
-      if (
-        (!title || title == post.title) &&
-        (!content || content == post.content) &&
-        (!is_published || is_published == post.is_published) &&
-        (!publish_date ||
-          publish_date == post.publish_date ||
-          publish_date.getTime() == post.publish_date.getTime())
-      ) {
-        throw new Error("No changes to be made.");
-      }
-
-      if (content && content !== post.content) {
-        const changes = diffWords(post.content, content, undefined).map(
-          // map out the `count` variable
-          ({ value, count, ...rest }: any) => ({ text: value, ...rest })
-        );
-
-        post.content = content;
-
-        await execute(
-          create_post_edit(await get_new_uuid(PostEdit), {
-            post_id: id,
-            date: new Date(),
-            changes,
-          })
-        );
-      }
-
-      post.title = title || post.title;
-      post.is_published = is_published || post.is_published;
-      post.publish_date = publish_date || post.publish_date;
-
-      await execute(
-        update_post(id, {
-          title: post.title,
-          content: post.content,
-          is_published: post.is_published,
-          publish_date: post.publish_date,
-        })
-      );
-
+      post.update(input);
       return post;
     },
     deletePost: async (obj: any, { id }: any, ctx: Context) => {
-      if (!ctx.auth) {
+      if (!ctx.author) {
         throw new Error("Must be authenticated.");
       }
-
-      const postResult = await execute(post_by_id(id));
-      if (!postResult.rows.length) {
-        return null;
+      const post = await Post.byId(id);
+      if (!post) {
+        throw new Error("No post with that ID found.");
       }
-      const post = Post.fromData(postResult.rows[0]);
-
-      if (post.author_id != ctx.auth.sub) {
-        throw new Error("Cannot delete someone else's post.");
+      if (ctx.author.id != post.author_id) {
+        throw new Error("You cannot delete another author's post.");
       }
 
-      await execute(delete_post(id));
+      await post.delete();
       return id;
     },
   },

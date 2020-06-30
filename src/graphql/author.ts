@@ -1,19 +1,9 @@
 import gql from "../../vendor/graphql-tag.js";
-import { hash, verify } from "https://deno.land/x/argon2/lib/mod.ts";
 
 import { Context } from "./index.ts";
-import { execute, set_jwt_cookies } from "../utils.ts";
-import {
-  authors,
-  author_by_id,
-  author_by_name,
-  author_by_username,
-  create_author,
-  update_author,
-  posts_by_author,
-} from "../queries.ts";
-import { Author, Post } from "../model/index.ts";
-import { get_new_uuid } from "../utils.ts";
+import { Author } from "../model/index.ts";
+
+import { set_jwt_cookies } from "../utils.ts";
 
 export const typeDefs = gql`
   """
@@ -49,85 +39,43 @@ export const typeDefs = gql`
 
   type Mutation {
     createAuthor(input: CreateAuthorInput!): Author!
-    updateAuthor(id: ID!, input: UpdateAuthorInput!): Author!
+    updateAuthor(input: UpdateAuthorInput!): Author!
   }
 `;
 
 export const resolvers = {
   Author: {
-    posts: async (author: Author, args: any, ctx: Context) => {
-      const postsResult = await execute(posts_by_author(author.id));
-      return postsResult.rows.map((row) => Post.fromData(row));
+    posts: (author: Author) => {
+      return author.getPosts();
     },
   },
   Query: {
-    author: async (obj: any, args: any, ctx: Context, info: any) => {
-      const result = await execute(author_by_name(args.name));
-      return result.rows.length ? Author.fromData(result.rows[0]) : null;
+    author: (obj: any, args: any) => {
+      return Author.byName(args.name);
     },
-    authors: (obj: any, args: any, ctx: Context, info: any) => {
-      return execute(authors).then((result) =>
-        result.rows.map((row) => Author.fromData(row))
-      );
+    authors: () => {
+      return Author.all();
     },
   },
   Mutation: {
-    createAuthor: async (obj: any, { input }: any, ctx: Context) => {
+    createAuthor: (obj: any, { input }: any) => {
       if (!input.password.length) {
         throw new Error("Password should not be blank.");
       }
       if (!input.username.length) {
         throw new Error("Username should not be blank.");
       }
-      const userCheckResult = await execute(author_by_username(input.username));
-      if (userCheckResult.rows.length > 0) {
-        throw new Error("That username is taken.");
-      }
-      const uuid = await get_new_uuid(Author);
-      const password_hash = await hash(input.password, {
-        salt: crypto.getRandomValues(new Uint8Array(16)),
-      });
-      const insertResult = await execute(
-        create_author(uuid, { ...input, password_hash })
-      );
-      return Author.fromData(insertResult.rows[0]);
+      return Author.create(input);
     },
-    updateAuthor: async (
-      obj: any,
-      { id, input: { name, username, password, new_password } }: any,
-      ctx: Context
-    ) => {
-      if (!ctx.auth) {
+    updateAuthor: async (obj: any, { input }: any, ctx: Context) => {
+      if (!ctx.author) {
         throw new Error("Must be authenticated.");
       }
 
-      if (id != ctx.auth.sub) {
-        throw new Error("Cannot update another user's profile.");
-      }
+      await ctx.author.update(input);
 
-      const author = (await execute(author_by_id(id))).rowsOfObjects()[0];
-      if (!(await verify(author.password_hash, password))) {
-        throw new Error("Current password is incorrect.");
-      }
-
-      let new_password_hash: string | undefined;
-      if (new_password) {
-        new_password_hash = await hash(new_password, {
-          salt: crypto.getRandomValues(new Uint8Array(16)),
-        });
-      }
-
-      const updateResult = await execute(
-        update_author(id, {
-          name: name || author.name,
-          username: username || author.username,
-          password_hash: new_password_hash || author.password_hash,
-        })
-      );
-
-      set_jwt_cookies(updateResult.rowsOfObjects()[0], ctx.cookies);
-
-      return Author.fromData(updateResult.rows[0]);
+      set_jwt_cookies(ctx.author, ctx.cookies);
+      return ctx.author;
     },
   },
 };

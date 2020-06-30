@@ -1,14 +1,11 @@
 import { Cookies } from "https://deno.land/x/oak/mod.ts";
-import { pool } from "./main.ts";
 import { PoolClient } from "https://deno.land/x/postgres/client.ts";
-import {
-  QueryConfig,
-  QueryResult,
-} from "https://deno.land/x/postgres/query.ts";
+import { QueryConfig } from "https://deno.land/x/postgres/query.ts";
 import { makeJwt } from "https://deno.land/x/djwt/create.ts";
-import { create_uuid } from "./queries.ts";
 
+import { pool } from "./main.ts";
 import { config } from "./main.ts";
+import { Author } from "./model/author.ts";
 
 export function sql(
   strings: TemplateStringsArray,
@@ -40,16 +37,16 @@ export function sql(
 export async function execute(
   query: QueryConfig | string,
   client?: PoolClient
-): Promise<QueryResult> {
+): Promise<{ [key: string]: any }[]> {
   console.log((typeof query == "string" ? query : query.text) + "\n---");
   if (client) {
-    return client.query(query);
+    return (await client.query(query)).rowsOfObjects();
   } else {
-    return pool.query(query);
+    return (await pool.query(query)).rowsOfObjects();
   }
 }
 
-export function set_jwt_cookies(author: any, cookies: Cookies) {
+export function set_jwt_cookies(author: Author, cookies: Cookies) {
   const now: number = new Date().getTime();
   const exp: number = 24 * 60 * 60 * 1000;
   const jwt = makeJwt({
@@ -84,12 +81,4 @@ export function set_jwt_cookies(author: any, cookies: Cookies) {
   });
 
   return jwt;
-}
-
-export async function get_new_uuid(type: Function) {
-  const result = await execute(create_uuid(type));
-  if (!result.rows) {
-    throw new Error(`Could not create a new UUID for the type: ${type.name}`);
-  }
-  return result.rows[0][0];
 }
