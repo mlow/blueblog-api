@@ -6,12 +6,13 @@ import { applyGraphQL } from "./graphql.ts";
 import { applyAuth } from "./auth.ts";
 import { typeDefs, resolvers } from "./graphql/index.ts";
 
-import { Author } from "./model/author.ts";
+import { genModel, Models, Author } from "./model/index.ts";
 
 declare module "https://deno.land/x/oak/mod.ts" {
   export interface Context {
     // any per-request state
     rstate: any;
+    model: Models;
     author?: Author;
   }
 }
@@ -43,6 +44,7 @@ const app = new Application();
 
 app.use(async (ctx, next) => {
   ctx.rstate = {};
+  ctx.model = genModel(ctx);
   await next();
 });
 

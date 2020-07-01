@@ -1,7 +1,6 @@
 import gql from "../../vendor/graphql-tag.js";
 
-import { Context } from "./index.ts";
-import { Author } from "../model/index.ts";
+import { Context, Author } from "../model/index.ts";
 
 import { set_jwt_cookies } from "../utils.ts";
 
@@ -45,37 +44,26 @@ export const typeDefs = gql`
 
 export const resolvers = {
   Author: {
-    posts: (author: Author) => {
-      return author.getPosts();
+    posts: (author: Author, args: any, { model }: Context) => {
+      return model.Post.allByAuthor(author.id);
     },
   },
   Query: {
-    author: (obj: any, args: any) => {
-      return Author.byName(args.name);
+    author: (obj: any, { name }: any, { model }: Context) => {
+      return model.Author.byName(name);
     },
-    authors: () => {
-      return Author.all();
+    authors: (obj: any, args: any, { model }: Context) => {
+      return model.Author.all();
     },
   },
   Mutation: {
-    createAuthor: (obj: any, { input }: any) => {
-      if (!input.password.length) {
-        throw new Error("Password should not be blank.");
-      }
-      if (!input.username.length) {
-        throw new Error("Username should not be blank.");
-      }
-      return Author.create(input);
+    createAuthor: (obj: any, { input }: any, { model }: Context) => {
+      return model.Author.create(input);
     },
     updateAuthor: async (obj: any, { input }: any, ctx: Context) => {
-      if (!ctx.author) {
-        throw new Error("Must be authenticated.");
-      }
-
-      await ctx.author.update(input);
-
-      set_jwt_cookies(ctx.author, ctx.cookies);
-      return ctx.author;
+      const author = await ctx.model.Author.update(input);
+      set_jwt_cookies(author, ctx.cookies);
+      return author;
     },
   },
 };

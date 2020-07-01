@@ -1,7 +1,6 @@
 import gql from "../../vendor/graphql-tag.js";
 
-import { Context } from "./index.ts";
-import { Post } from "../model/index.ts";
+import { Context, Post } from "../model/index.ts";
 
 export const typeDefs = gql`
   """
@@ -57,55 +56,30 @@ export const typeDefs = gql`
 
 export const resolvers = {
   Post: {
-    author: (post: Post) => {
-      return post.getAuthor();
+    author: (post: Post, args: any, { model }: Context) => {
+      return model.Author.byID(post.author_id);
     },
-    edits: async (post: Post) => {
-      return post.getEdits();
+    edits: (post: Post, args: any, { model }: Context) => {
+      return model.PostEdit.allByPost(post.id);
     },
   },
   Query: {
-    post: (obj: any, args: any) => {
-      return Post.byId(args.id);
+    post: (obj: any, { id }: any, { model }: Context) => {
+      return model.Post.byID(id);
     },
-    posts: () => {
-      return Post.all();
+    posts: (obj: any, args: any, { model }: Context) => {
+      return model.Post.all();
     },
   },
   Mutation: {
-    createPost: async (obj: any, { input }: any, ctx: Context) => {
-      if (!ctx.author) {
-        throw new Error("Must be authenticated.");
-      }
-      return await Post.create(ctx.author, input);
+    createPost: (obj: any, { input }: any, { model }: Context) => {
+      return model.Post.create(input);
     },
-    updatePost: async (obj: any, { id, input }: any, ctx: Context) => {
-      if (!ctx.author) {
-        throw new Error("Must be authenticated.");
-      }
-      const post = await Post.byId(id);
-      if (!post) {
-        throw new Error("No post with that ID found.");
-      }
-      if (ctx.author.id != post.author_id) {
-        throw new Error("You cannot edit another author's post.");
-      }
-      return post.update(input);
+    updatePost: (obj: any, { id, input }: any, { model }: Context) => {
+      return model.Post.update(id, input);
     },
-    deletePost: async (obj: any, { id }: any, ctx: Context) => {
-      if (!ctx.author) {
-        throw new Error("Must be authenticated.");
-      }
-      const post = await Post.byId(id);
-      if (!post) {
-        throw new Error("No post with that ID found.");
-      }
-      if (ctx.author.id != post.author_id) {
-        throw new Error("You cannot delete another author's post.");
-      }
-
-      await post.delete();
-      return id;
+    deletePost: (obj: any, { id }: any, { model }: Context) => {
+      return model.Post.delete(id);
     },
   },
 };

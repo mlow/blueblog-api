@@ -1,7 +1,5 @@
 import { hash, verify } from "https://deno.land/x/argon2/lib/mod.ts";
-
-import { sql, execute, genUUID } from "./index.ts";
-import { Post } from "./post.ts";
+import { Context, Type, sql, execute, genUUID } from "./index.ts";
 
 const AUTHORS = sql`SELECT id, name, username, password_hash FROM authors;`;
 
@@ -37,51 +35,53 @@ SET name = ${author.name},
     password_hash = ${author.password_hash}
 WHERE id = ${author.id};`;
 
-export class Author {
-  constructor(
-    public id: string,
-    public name: string,
-    public username: string,
-    public password_hash: string
-  ) {}
+export interface Author {
+  id: string;
+  name: string;
+  username: string;
+  password_hash: string;
+}
 
-  getPosts(): Promise<Post[]> {
-    return Post.allByAuthor(this.id);
-  }
+export interface AuthorModel {
+  all: () => Promise<Author[]>;
+  byID: (id: string) => Promise<Author>;
+  byName: (name: string) => Promise<Author>;
+  byUsername: (username: string) => Promise<Author>;
+  create: ({ name, username, password }: any) => Promise<Author>;
+  update: ({ name, username, password, new_password }: any) => Promise<Author>;
+}
 
-  async update({ name, username, password, new_password }: any): Promise<this> {
-    if (!(await verify(this.password_hash, password))) {
-      throw new Error("Current password is incorrect.");
-    }
+export const genAuthorModel = ({ author }: Context): AuthorModel => ({
+  async all(): Promise<Author[]> {
+    return (await execute(AUTHORS)) as Author[];
+  },
 
-    if (new_password) {
-      this.password_hash = await hash(new_password, {
-        salt: crypto.getRandomValues(new Uint8Array(16)),
-      });
-    }
+  async byID(id: string): Promise<Author> {
+    const result = await execute(AUTHOR_BY_ID(id));
+    return result[0] as Author;
+  },
 
-    this.name = name ?? this.name;
-    this.username = username ?? this.username;
+  async byName(name: string): Promise<Author> {
+    const result = await execute(AUTHOR_BY_NAME(name));
+    return result[0] as Author;
+  },
 
-    await execute(UPDATE_AUTHOR(this));
+  async byUsername(username: string): Promise<Author> {
+    const result = await execute(AUTHOR_BY_USERNAME(username));
+    return result[0] as Author;
+  },
 
-    return this;
-  }
-
-  static fromRawData({ id, name, username, password_hash }: any): Author {
-    return new Author(id, name, username, password_hash);
-  }
-
-  static async create({ name, username, password }: any): Promise<Author> {
-    const author = Author.byUsername(username);
+  async create({ name, username, password }: any): Promise<Author> {
+    const author = this.byUsername(username);
     if (author) {
-      throw new Error("That username is taken.");
+      throw new Error("That username is already taken.");
     }
-    const uuid = await genUUID(Author);
+
     const password_hash = await hash(password, {
       salt: crypto.getRandomValues(new Uint8Array(16)),
     });
 
+    const uuid = await genUUID(Type.Author);
     const result = await execute(
       CREATE_AUTHOR(uuid, {
         name,
@@ -90,32 +90,29 @@ export class Author {
       })
     );
 
-    return Author.fromRawData(result[0]);
-  }
+    return result[0] as Author;
+  },
 
-  static async all(): Promise<Author[]> {
-    const result = await execute(AUTHORS);
-    return result.map((row) => Author.fromRawData(row));
-  }
-
-  static async byID(id: string): Promise<Author | undefined> {
-    const result = await execute(AUTHOR_BY_ID(id));
-    if (result.length) {
-      return Author.fromRawData(result[0]);
+  async update({
+    name,
+    username,
+    password,
+    new_password,
+  }: any): Promise<Author> {
+    if (!author) {
+      throw new Error("Must be authenticated.");
     }
-  }
-
-  static async byName(name: string): Promise<Author | undefined> {
-    const result = await execute(AUTHOR_BY_NAME(name));
-    if (result.length) {
-      return Author.fromRawData(result[0]);
+    if (!(await verify(author.password_hash, password))) {
+      throw new Error("Current password is incorrect.");
     }
-  }
-
-  static async byUsername(username: string): Promise<Author | undefined> {
-    const result = await execute(AUTHOR_BY_USERNAME(username));
-    if (result.length) {
-      return Author.fromRawData(result[0]);
+    if (new_password) {
+      author.password_hash = await hash(new_password, {
+        salt: crypto.getRandomValues(new Uint8Array(16)),
+      });
     }
-  }
-}
+    author.name = name ?? author.name;
+    author.username = username ?? author.username;
+    await execute(UPDATE_AUTHOR(author));
+    return author;
+  },
+});

@@ -1,6 +1,6 @@
 import gql from "../../vendor/graphql-tag.js";
 
-import { getTypeByUUID, Author, Post, PostEdit } from "../model/index.ts";
+import { Type, Context, getTypeByUUID } from "../model/index.ts";
 
 export const typeDefs = gql`
   """
@@ -17,21 +17,25 @@ export const typeDefs = gql`
 `;
 
 export const resolvers = {
-  Node: {
-    __resolveType: (obj: any) => obj.constructor.name || null,
-  },
   Query: {
-    node: async (obj: any, { id }: any) => {
-      switch (await getTypeByUUID(id)) {
-        case Author.name:
-          return Author.byID(id);
-        case Post.name:
-          return Post.byId(id);
-        case PostEdit.name:
-          return PostEdit.byId(id);
+    node: async (_: any, { id }: any, { model }: Context) => {
+      const type = await getTypeByUUID(id);
+      let obj: any;
+      switch (type) {
+        case Type.Author:
+          obj = await model.Author.byID(id);
+          break;
+        case Type.Post:
+          obj = await model.Post.byID(id);
+          break;
+        case Type.PostEdit:
+          obj = await model.PostEdit.byID(id);
+          break;
         default:
           return null;
       }
+      obj.__typename = type;
+      return obj;
     },
   },
 };

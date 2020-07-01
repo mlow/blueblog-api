@@ -1,6 +1,6 @@
 import gql from "../../vendor/graphql-tag.js";
 
-import { PostEdit } from "../model/index.ts";
+import { PostEdit, Context } from "../model/index.ts";
 
 export const typeDefs = gql`
   """
@@ -36,8 +36,8 @@ export const typeDefs = gql`
 
 export const resolvers = {
   PostEdit: {
-    post: (edit: PostEdit) => {
-      return edit.getPost();
+    post: (edit: PostEdit, args: any, { model }: Context) => {
+      return model.Post.byID(edit.post_id);
     },
   },
 };

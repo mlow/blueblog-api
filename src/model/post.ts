@@ -1,8 +1,12 @@
 import { diffWords } from "../../vendor/diff.js";
+import { Context, Type, sql, execute, genUUID } from "./index.ts";
 
-import { sql, execute, genUUID } from "./index.ts";
-import { Author } from "./author.ts";
-import { PostEdit } from "./postEdit.ts";
+interface PostCreateUpdateInput {
+  title?: string;
+  content?: string;
+  is_published?: boolean;
+  publish_date?: Date;
+}
 
 const POSTS = sql`
 SELECT id, author_id, title, content, is_published, publish_date
@@ -23,27 +27,20 @@ FROM posts
 WHERE author_id = ${author_id}
 ORDER BY publish_date DESC;`;
 
-export interface PostCreateUpdateParams {
-  title: string;
-  content: string;
-  is_published?: boolean;
-  publish_date?: Date;
-}
-
 export const CREATE_POST = (
   uuid: string,
   author_id: string,
-  params: PostCreateUpdateParams
+  input: PostCreateUpdateInput
 ) =>
   sql`
 INSERT INTO posts (id, author_id, title, content, is_published, publish_date)
 VALUES (
   ${uuid},
   ${author_id},
-  ${params.title},
-  ${params.content},
-  ${params.is_published ?? false},
-  ${params.publish_date ?? new Date()}
+  ${input.title},
+  ${input.content},
+  ${input.is_published ?? false},
+  ${input.publish_date ?? new Date()}
 ) RETURNING id, author_id, title, content, is_published, publish_date;`;
 
 export const UPDATE_POST = (post: Post) =>
@@ -58,88 +55,96 @@ UPDATE posts
 export const DELETE_POST = (uuid: string) =>
   sql`DELETE FROM posts WHERE id = ${uuid};`;
 
-export class Post {
-  constructor(
-    public id: string,
-    public author_id: string,
-    public title: string,
-    public content: string,
-    public is_published: boolean,
-    public publish_date: Date
-  ) {}
+export interface Post {
+  id: string;
+  author_id: string;
+  title: string;
+  content: string;
+  is_published: boolean;
+  publish_date: Date;
+}
 
-  getAuthor(): Promise<Author | undefined> {
-    return Author.byID(this.author_id);
-  }
+export interface PostModel {
+  all: () => Promise<Post[]>;
+  allByAuthor: (author_id: string) => Promise<Post[]>;
+  byID: (id: string) => Promise<Post>;
+  create: (input: PostCreateUpdateInput) => Promise<Post>;
+  update: (post_id: string, input: PostCreateUpdateInput) => Promise<Post>;
+  delete: (post_id: string) => Promise<string>;
+}
 
-  getEdits(): Promise<PostEdit[]> {
-    return PostEdit.allByPost(this.id);
-  }
+export const genPostModel = ({ author, model }: Context): PostModel => ({
+  async all(): Promise<Post[]> {
+    return (await execute(POSTS)) as Post[];
+  },
 
-  async update({
-    title,
-    content,
-    is_published,
-    publish_date,
-  }: any): Promise<this> {
-    if (content && content !== this.content) {
-      const changes = diffWords(
-        this.content,
-        content,
-        undefined
-      ).map(({ value, count, ...rest }: any) => ({ text: value, ...rest }));
-      this.content = content;
-      await PostEdit.create({
-        post_id: this.id,
+  async allByAuthor(author_id: string): Promise<Post[]> {
+    return (await execute(POSTS_BY_AUTHOR(author_id))) as Post[];
+  },
+
+  async byID(id: string): Promise<Post> {
+    const result = await execute(POST_BY_ID(id));
+    return result[0] as Post;
+  },
+
+  async create(input: PostCreateUpdateInput): Promise<Post> {
+    if (!author) {
+      throw new Error("Must be authenticated.");
+    }
+    const uuid = await genUUID(Type.Post);
+    const result = await execute(CREATE_POST(uuid, author.id, input));
+    return result[0] as Post;
+  },
+
+  async update(post_id: string, input: PostCreateUpdateInput): Promise<Post> {
+    if (!author) {
+      throw new Error("Must be authenticated.");
+    }
+    const post = await this.byID(post_id);
+    if (!post) {
+      throw new Error("No post with that ID found.");
+    }
+    if (author.id != post.author_id) {
+      throw new Error("You cannot edit another author's post.");
+    }
+
+    if (input.content && input.content !== post.content) {
+      const changes = diffWords(post.content, input.content, undefined).map(
+        ({ value, count, ...rest }: any) => ({
+          text: value,
+          ...rest,
+        })
+      );
+      post.content = input.content;
+      await model.PostEdit.create({
+        post_id: post.id,
         date: new Date(),
         changes,
       });
     }
 
-    this.title = title ?? this.title;
-    this.is_published = is_published ?? this.is_published;
-    this.publish_date = publish_date ?? this.publish_date;
+    post.title = input.title ?? post.title;
+    post.is_published = input.is_published ?? post.is_published;
+    post.publish_date = input.publish_date ?? post.publish_date;
 
-    await execute(UPDATE_POST(this));
+    await execute(UPDATE_POST(post));
 
-    return this;
-  }
+    return post;
+  },
 
-  delete() {
-    return execute(DELETE_POST(this.id));
-  }
-
-  static fromRawData({
-    id,
-    author_id,
-    title,
-    content,
-    is_published,
-    publish_date,
-  }: any): Post {
-    return new Post(id, author_id, title, content, is_published, publish_date);
-  }
-
-  static async create(author: Author, input: any): Promise<Post> {
-    const uuid = await genUUID(Post);
-    const result = await execute(CREATE_POST(uuid, author.id, input));
-    return Post.fromRawData(result[0]);
-  }
-
-  static async all(): Promise<Post[]> {
-    const result = await execute(POSTS);
-    return result.map((row) => Post.fromRawData(row));
-  }
-
-  static async byId(id: string): Promise<Post | undefined> {
-    const result = await execute(POST_BY_ID(id));
-    if (result.length) {
-      return Post.fromRawData(result[0]);
+  async delete(post_id: string): Promise<string> {
+    if (!author) {
+      throw new Error("Must be authenticated.");
     }
-  }
+    const post = await this.byID(post_id);
+    if (!post) {
+      throw new Error("No post with that ID found.");
+    }
+    if (author.id != post.author_id) {
+      throw new Error("You cannot delete another author's post.");
+    }
 
-  static async allByAuthor(author_id: string): Promise<Post[]> {
-    const result = await execute(POSTS_BY_AUTHOR(author_id));
-    return result.map((row) => Post.fromRawData(row));
-  }
-}
+    await execute(DELETE_POST(post.id));
+    return post.id;
+  },
+});
