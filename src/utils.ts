@@ -11,13 +11,14 @@ export function sql(
   strings: TemplateStringsArray,
   ...values: any[]
 ): QueryConfig {
-  if (strings.length == 1) return { text: strings[0] };
+  if (strings.length == 1)
+    return { text: strings[0].trim().replace(/\n/g, " ") };
 
   const query: string[] = [];
   const args: Array<unknown> = [];
   let argIndex = 1;
   for (let i = 0, len = strings.length; i < len; i++) {
-    query.push(strings[i]);
+    query.push(strings[i].replace(/\n/g, " "));
     if (i < len - 1) {
       let val = values[i];
       if (val instanceof Array) {
@@ -38,11 +39,19 @@ export async function execute(
   query: QueryConfig | string,
   client?: PoolClient
 ): Promise<{ [key: string]: any }[]> {
-  console.log((typeof query == "string" ? query : query.text) + "\n---");
-  if (client) {
-    return (await client.query(query)).rowsOfObjects();
-  } else {
-    return (await pool.query(query)).rowsOfObjects();
+  const start = Date.now();
+  try {
+    if (client) {
+      return (await client.query(query)).rowsOfObjects();
+    } else {
+      return (await pool.query(query)).rowsOfObjects();
+    }
+  } finally {
+    console.log(
+      "\x1b[31mquery\x1b[0m %s \x1b[31m+%dms\x1b[0m",
+      typeof query == "string" ? query : query.text,
+      Date.now() - start
+    );
   }
 }
 

@@ -16,7 +16,7 @@ const POST_EDITS_BY_POST_ID = (post_id: string) =>
   sql`
 SELECT id, post_id, date, changes
 FROM post_edits WHERE post_id = ${post_id}
-ORDER BY date DESC`;
+ORDER BY date DESC;`;
 
 const POST_EDIT_BY_ID = (id: string) =>
   sql`SELECT id, post_id, date, changes FROM post_edits WHERE id = ${id};`;
