@@ -5,13 +5,13 @@ export { Author } from "./author.ts";
 export { Post } from "./post.ts";
 export { PostEdit, PostEditChange } from "./postEdit.ts";
 
-export const CREATE_UUID = (type: Function) =>
+const CREATE_UUID = (type: Function) =>
   sql`
 INSERT INTO uuids (type_id)
 (SELECT id FROM types WHERE type = ${type.name})
 RETURNING uuid;`;
 
-export const TYPE_BY_UUID = (uuid: string) =>
+const TYPE_BY_UUID = (uuid: string) =>
   sql`
 SELECT t.type FROM uuids
 JOIN types t ON type_id = t.id
