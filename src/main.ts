@@ -54,7 +54,10 @@ app.use(async (ctx, next) => {
   const start = Date.now();
   await next();
   console.log(
-    `${ctx.request.method} ${ctx.request.url} - ${Date.now() - start}ms`
+    `\x1b[32m%s\x1b[0m %s \x1b[32m%dms\x1b[0m\n---`,
+    ctx.request.method,
+    ctx.request.url,
+    Date.now() - start
   );
 });
 
@@ -64,7 +67,9 @@ applyGraphQL({
   resolvers: resolvers,
 });
 
-console.log(`Server listening at http://localhost:${config["LISTEN_PORT"]}`);
+console.log(
+  `Server listening at http://localhost:${config["LISTEN_PORT"]}\n---`
+);
 await app.listen({ port: parseInt(config["LISTEN_PORT"]) });
 
 await pool.end();
