@@ -7,8 +7,8 @@ const AUTHORS = sql`SELECT id, name, username, password_hash FROM authors;`;
 const AUTHORS_BY_IDS = (ids: readonly string[]) =>
   sql`SELECT id, name, username, password_hash FROM authors WHERE id IN (${ids});`;
 
-const AUTHOR_BY_NAME = (name: string) =>
-  sql`SELECT id, name, username, password_hash FROM authors WHERE name = ${name} LIMIT 1;`;
+const AUTHORS_BY_NAMES = (names: readonly string[]) =>
+  sql`SELECT id, name, username, password_hash FROM authors WHERE name IN (${names});`;
 
 const AUTHOR_BY_USERNAME = (username: string) =>
   sql`SELECT id, name, username, password_hash FROM authors WHERE username = LOWER(${username}) LIMIT 1;`;
@@ -61,6 +61,14 @@ export const genAuthorModel = ({ author }: Context): AuthorModel => {
     return keys.map((id) => mapping[id]);
   }, {});
 
+  const authorByNameLoader = new DataLoader<string, Author>(async (keys) => {
+    const mapping = mapObjectsByProp(
+      (await execute(AUTHORS_BY_NAMES(keys))) as Author[],
+      "name"
+    );
+    return keys.map((id) => mapping[id]);
+  }, {});
+
   function primeLoaders(authors: Author[]) {
     authors.forEach((author) => {
       authorByIDLoader.prime(author.id, author);
@@ -77,9 +85,8 @@ export const genAuthorModel = ({ author }: Context): AuthorModel => {
       return authorByIDLoader.load(id);
     },
 
-    async byName(name: string): Promise<Author> {
-      const result = await execute(AUTHOR_BY_NAME(name));
-      return result[0] as Author;
+    byName(name: string): Promise<Author> {
+      return authorByNameLoader.load(name);
     },
 
     async byUsername(username: string): Promise<Author> {
