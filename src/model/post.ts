@@ -73,78 +73,80 @@ export interface PostModel {
   delete: (post_id: string) => Promise<string>;
 }
 
-export const genPostModel = ({ author, model }: Context): PostModel => ({
-  async all(): Promise<Post[]> {
-    return (await execute(POSTS)) as Post[];
-  },
+export const genPostModel = ({ author, model }: Context): PostModel => {
+  return {
+    async all(): Promise<Post[]> {
+      return (await execute(POSTS)) as Post[];
+    },
 
-  async allByAuthor(author_id: string): Promise<Post[]> {
-    return (await execute(POSTS_BY_AUTHOR(author_id))) as Post[];
-  },
+    async allByAuthor(author_id: string): Promise<Post[]> {
+      return (await execute(POSTS_BY_AUTHOR(author_id))) as Post[];
+    },
 
-  async byID(id: string): Promise<Post> {
-    const result = await execute(POST_BY_ID(id));
-    return result[0] as Post;
-  },
+    async byID(id: string): Promise<Post> {
+      const result = await execute(POST_BY_ID(id));
+      return result[0] as Post;
+    },
 
-  async create(input: PostCreateUpdateInput): Promise<Post> {
-    if (!author) {
-      throw new Error("Must be authenticated.");
-    }
-    const uuid = await genUUID(Type.Post);
-    const result = await execute(CREATE_POST(uuid, author.id, input));
-    return result[0] as Post;
-  },
+    async create(input: PostCreateUpdateInput): Promise<Post> {
+      if (!author) {
+        throw new Error("Must be authenticated.");
+      }
+      const uuid = await genUUID(Type.Post);
+      const result = await execute(CREATE_POST(uuid, author.id, input));
+      return result[0] as Post;
+    },
 
-  async update(post_id: string, input: PostCreateUpdateInput): Promise<Post> {
-    if (!author) {
-      throw new Error("Must be authenticated.");
-    }
-    const post = await this.byID(post_id);
-    if (!post) {
-      throw new Error("No post with that ID found.");
-    }
-    if (author.id != post.author_id) {
-      throw new Error("You cannot edit another author's post.");
-    }
+    async update(post_id: string, input: PostCreateUpdateInput): Promise<Post> {
+      if (!author) {
+        throw new Error("Must be authenticated.");
+      }
+      const post = await this.byID(post_id);
+      if (!post) {
+        throw new Error("No post with that ID found.");
+      }
+      if (author.id != post.author_id) {
+        throw new Error("You cannot edit another author's post.");
+      }
 
-    if (input.content && input.content !== post.content) {
-      const changes = diffWords(post.content, input.content, undefined).map(
-        ({ value, count, ...rest }: any) => ({
-          text: value,
-          ...rest,
-        })
-      );
-      post.content = input.content;
-      await model.PostEdit.create({
-        post_id: post.id,
-        date: new Date(),
-        changes,
-      });
-    }
+      if (input.content && input.content !== post.content) {
+        const changes = diffWords(post.content, input.content, undefined).map(
+          ({ value, count, ...rest }: any) => ({
+            text: value,
+            ...rest,
+          })
+        );
+        post.content = input.content;
+        await model.PostEdit.create({
+          post_id: post.id,
+          date: new Date(),
+          changes,
+        });
+      }
 
-    post.title = input.title ?? post.title;
-    post.is_published = input.is_published ?? post.is_published;
-    post.publish_date = input.publish_date ?? post.publish_date;
+      post.title = input.title ?? post.title;
+      post.is_published = input.is_published ?? post.is_published;
+      post.publish_date = input.publish_date ?? post.publish_date;
 
-    await execute(UPDATE_POST(post));
+      await execute(UPDATE_POST(post));
 
-    return post;
-  },
+      return post;
+    },
 
-  async delete(post_id: string): Promise<string> {
-    if (!author) {
-      throw new Error("Must be authenticated.");
-    }
-    const post = await this.byID(post_id);
-    if (!post) {
-      throw new Error("No post with that ID found.");
-    }
-    if (author.id != post.author_id) {
-      throw new Error("You cannot delete another author's post.");
-    }
+    async delete(post_id: string): Promise<string> {
+      if (!author) {
+        throw new Error("Must be authenticated.");
+      }
+      const post = await this.byID(post_id);
+      if (!post) {
+        throw new Error("No post with that ID found.");
+      }
+      if (author.id != post.author_id) {
+        throw new Error("You cannot delete another author's post.");
+      }
 
-    await execute(DELETE_POST(post.id));
-    return post.id;
-  },
-});
+      await execute(DELETE_POST(post.id));
+      return post.id;
+    },
+  };
+};

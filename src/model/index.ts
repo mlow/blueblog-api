@@ -1,8 +1,6 @@
-import { sql, execute } from "../utils.ts";
-export { sql, execute };
-
 import { Context } from "https://deno.land/x/oak/mod.ts";
-export { Context };
+import { sql, execute } from "../utils.ts";
+export { Context, sql, execute }
 
 import { genAuthorModel, AuthorModel } from "./author.ts";
 import { genPostModel, PostModel } from "./post.ts";

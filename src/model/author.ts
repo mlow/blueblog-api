@@ -51,68 +51,70 @@ export interface AuthorModel {
   update: ({ name, username, password, new_password }: any) => Promise<Author>;
 }
 
-export const genAuthorModel = ({ author }: Context): AuthorModel => ({
-  async all(): Promise<Author[]> {
-    return (await execute(AUTHORS)) as Author[];
-  },
+export const genAuthorModel = ({ author }: Context): AuthorModel => {
+  return {
+    async all(): Promise<Author[]> {
+      return (await execute(AUTHORS)) as Author[];
+    },
 
-  async byID(id: string): Promise<Author> {
-    const result = await execute(AUTHOR_BY_ID(id));
-    return result[0] as Author;
-  },
+    async byID(id: string): Promise<Author> {
+      const result = await execute(AUTHOR_BY_ID(id));
+      return result[0] as Author;
+    },
 
-  async byName(name: string): Promise<Author> {
-    const result = await execute(AUTHOR_BY_NAME(name));
-    return result[0] as Author;
-  },
+    async byName(name: string): Promise<Author> {
+      const result = await execute(AUTHOR_BY_NAME(name));
+      return result[0] as Author;
+    },
 
-  async byUsername(username: string): Promise<Author> {
-    const result = await execute(AUTHOR_BY_USERNAME(username));
-    return result[0] as Author;
-  },
+    async byUsername(username: string): Promise<Author> {
+      const result = await execute(AUTHOR_BY_USERNAME(username));
+      return result[0] as Author;
+    },
 
-  async create({ name, username, password }: any): Promise<Author> {
-    const author = this.byUsername(username);
-    if (author) {
-      throw new Error("That username is already taken.");
-    }
+    async create({ name, username, password }: any): Promise<Author> {
+      const author = this.byUsername(username);
+      if (author) {
+        throw new Error("That username is already taken.");
+      }
 
-    const password_hash = await hash(password, {
-      salt: crypto.getRandomValues(new Uint8Array(16)),
-    });
-
-    const uuid = await genUUID(Type.Author);
-    const result = await execute(
-      CREATE_AUTHOR(uuid, {
-        name,
-        username,
-        password_hash,
-      })
-    );
-
-    return result[0] as Author;
-  },
-
-  async update({
-    name,
-    username,
-    password,
-    new_password,
-  }: any): Promise<Author> {
-    if (!author) {
-      throw new Error("Must be authenticated.");
-    }
-    if (!(await verify(author.password_hash, password))) {
-      throw new Error("Current password is incorrect.");
-    }
-    if (new_password) {
-      author.password_hash = await hash(new_password, {
+      const password_hash = await hash(password, {
         salt: crypto.getRandomValues(new Uint8Array(16)),
       });
-    }
-    author.name = name ?? author.name;
-    author.username = username ?? author.username;
-    await execute(UPDATE_AUTHOR(author));
-    return author;
-  },
-});
+
+      const uuid = await genUUID(Type.Author);
+      const result = await execute(
+        CREATE_AUTHOR(uuid, {
+          name,
+          username,
+          password_hash,
+        })
+      );
+
+      return result[0] as Author;
+    },
+
+    async update({
+      name,
+      username,
+      password,
+      new_password,
+    }: any): Promise<Author> {
+      if (!author) {
+        throw new Error("Must be authenticated.");
+      }
+      if (!(await verify(author.password_hash, password))) {
+        throw new Error("Current password is incorrect.");
+      }
+      if (new_password) {
+        author.password_hash = await hash(new_password, {
+          salt: crypto.getRandomValues(new Uint8Array(16)),
+        });
+      }
+      author.name = name ?? author.name;
+      author.username = username ?? author.username;
+      await execute(UPDATE_AUTHOR(author));
+      return author;
+    },
+  };
+};

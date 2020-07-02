@@ -52,22 +52,24 @@ export interface PostEditModel {
   create: (input: PostEditCreateInput) => Promise<PostEdit>;
 }
 
-export const genPostEditModel = (ctx: Context): PostEditModel => ({
-  async allByPost(post_id: string): Promise<PostEdit[]> {
-    const result = await execute(POST_EDITS_BY_POST_ID(post_id));
-    return result.map((row) => fromRawData(row));
-  },
+export const genPostEditModel = (ctx: Context): PostEditModel => {
+  return {
+    async allByPost(post_id: string): Promise<PostEdit[]> {
+      const result = await execute(POST_EDITS_BY_POST_ID(post_id));
+      return result.map((row) => fromRawData(row));
+    },
 
-  async byID(id: string): Promise<MaybePostEdit> {
-    const result = await execute(POST_EDIT_BY_ID(id));
-    if (result.length) {
+    async byID(id: string): Promise<MaybePostEdit> {
+      const result = await execute(POST_EDIT_BY_ID(id));
+      if (result.length) {
+        return fromRawData(result[0]);
+      }
+    },
+
+    async create(input: PostEditCreateInput): Promise<PostEdit> {
+      const uuid = await genUUID(Type.PostEdit);
+      const result = await execute(CREATE_POST_EDIT(uuid, input));
       return fromRawData(result[0]);
-    }
-  },
-
-  async create(input: PostEditCreateInput): Promise<PostEdit> {
-    const uuid = await genUUID(Type.PostEdit);
-    const result = await execute(CREATE_POST_EDIT(uuid, input));
-    return fromRawData(result[0]);
-  },
-});
+    },
+  };
+};
