@@ -10,7 +10,7 @@
 // A Function, which when given an Array of keys, returns a Promise of an Array
 // of values or Errors.
 export type BatchLoadFn<K, V> =
-  (keys: $ReadOnlyArray<K>) => Promise<$ReadOnlyArray<V | Error>>;
+  (keys: ReadonlyArray<K>) => Promise<ReadonlyArray<V | Error>>;
 
 // Optionally turn off batching or caching or provide a cache key function or a
 // custom cache instance.
@@ -41,7 +41,7 @@ export type CacheMap<K, V> = {
  * different access permissions and consider creating a new instance per
  * web request.
  */
-class DataLoader<K, V, C = K> {
+export class DataLoader<K, V, C = K> {
   constructor(
     batchLoadFn: BatchLoadFn<K, V>,
     options?: Options<K, V, C>
@@ -55,16 +55,16 @@ class DataLoader<K, V, C = K> {
     this._batchLoadFn = batchLoadFn;
     this._maxBatchSize = getValidMaxBatchSize(options);
     this._batchScheduleFn = getValidBatchScheduleFn(options);
-    this._cacheKeyFn = getValidCacheKeyFn(options);
-    this._cacheMap = getValidCacheMap(options);
+    this._cacheKeyFn = getValidCacheKeyFn<K, C>(options);
+    this._cacheMap = getValidCacheMap<K, V, C>(options);
     this._batch = null;
   }
 
   // Private
   _batchLoadFn: BatchLoadFn<K, V>;
   _maxBatchSize: number;
-  _batchScheduleFn: (() => void) => void;
-  _cacheKeyFn: K => C;
+  _batchScheduleFn: (callback: () => void) => void;
+  _cacheKeyFn: (key: K) => C;
   _cacheMap: CacheMap<C, Promise<V>> | null;
   _batch: Batch<K, V> | null;
 
@@ -90,7 +90,7 @@ class DataLoader<K, V, C = K> {
         var cacheHits = batch.cacheHits || (batch.cacheHits = []);
         return new Promise(resolve => {
           cacheHits.push(() => {
-            resolve(cachedPromise);
+            resolve(cachedPromise as any);
           });
         });
       }
@@ -99,7 +99,7 @@ class DataLoader<K, V, C = K> {
     // Otherwise, produce a new Promise for this key, and enqueue it to be
     // dispatched along with the current batch.
     batch.keys.push(key);
-    var promise = new Promise((resolve, reject) => {
+    var promise = new Promise<V>((resolve, reject) => {
       batch.callbacks.push({ resolve, reject });
     });
 
@@ -131,15 +131,15 @@ class DataLoader<K, V, C = K> {
    *     // c instanceof Error
    *
    */
-  loadMany(keys: $ReadOnlyArray<K>): Promise<Array<V | Error>> {
+  loadMany(keys: ReadonlyArray<K>): Promise<Array<V | Error>> {
     if (!isArrayLike(keys)) {
       throw new TypeError(
         'The loader.loadMany() function must be called with Array<key> ' +
-        `but got: ${(keys: any)}.`
+        `but got: ${keys}.`
       );
     }
     // Support ArrayLike by using only minimal property access
-    const loadPromises = [];
+    const loadPromises: Array<Promise<V | Error>> = [];
     for (let i = 0; i < keys.length; i++) {
       loadPromises.push(this.load(keys[i]).catch(error => error));
     }
@@ -229,20 +229,23 @@ class DataLoader<K, V, C = K> {
 // for enqueuing a job to be performed after promise microtasks and before the
 // next macrotask. For browser environments, a macrotask is used (via
 // setImmediate or setTimeout) at a potential performance penalty.
-var enqueuePostPromiseJob =
-  typeof process === 'object' && typeof process.nextTick === 'function' ?
-    function (fn) {
-      if (!resolvedPromise) {
-        resolvedPromise = Promise.resolve();
-      }
-      resolvedPromise.then(() => {
-        process.nextTick(fn);
-      });
-    } :
-    setImmediate || setTimeout;
+// var enqueuePostPromiseJob =
+//   typeof process === "object" && typeof process.nextTick === "function"
+//     ? function (fn) {
+//         if (!resolvedPromise) {
+//           resolvedPromise = Promise.resolve();
+//         }
+//         resolvedPromise.then(() => {
+//           process.nextTick(fn);
+//         });
+//       }
+//     : (typeof setImmediate === "fuction"
+//     ? setImmediate
+//     : setTimeout);
+var enqueuePostPromiseJob = (fn: Function) => resolvedPromise.then(() => fn());
 
 // Private: cached resolved Promise instance
-var resolvedPromise;
+var resolvedPromise = Promise.resolve();
 
 // Private: Describes a batch of requests
 type Batch<K, V> = {
@@ -375,7 +378,7 @@ function resolveCacheHits(batch: Batch<any, any>) {
 }
 
 // Private: given the DataLoader's options, produce a valid max batch size.
-function getValidMaxBatchSize(options: ?Options<any, any, any>): number {
+function getValidMaxBatchSize<K, V, C>(options?: Options<K, V, C>): number {
   var shouldBatch = !options || options.batch !== false;
   if (!shouldBatch) {
     return 1;
@@ -386,43 +389,44 @@ function getValidMaxBatchSize(options: ?Options<any, any, any>): number {
   }
   if (typeof maxBatchSize !== 'number' || maxBatchSize < 1) {
     throw new TypeError(
-      `maxBatchSize must be a positive number: ${(maxBatchSize: any)}`
+      `maxBatchSize must be a positive number: ${maxBatchSize}`
     );
   }
   return maxBatchSize;
 }
 
 // Private
-function getValidBatchScheduleFn(
-  options: ?Options<any, any, any>
-): (() => void) => void {
+function getValidBatchScheduleFn<K, V, C>(
+  options?: Options<K, V, C>
+): (callback: () => void) => void {
   var batchScheduleFn = options && options.batchScheduleFn;
   if (batchScheduleFn === undefined) {
     return enqueuePostPromiseJob;
   }
   if (typeof batchScheduleFn !== 'function') {
     throw new TypeError(
-      `batchScheduleFn must be a function: ${(batchScheduleFn: any)}`
+      `batchScheduleFn must be a function: ${batchScheduleFn}`
     );
   }
   return batchScheduleFn;
 }
 
 // Private: given the DataLoader's options, produce a cache key function.
-function getValidCacheKeyFn<K, C>(options: ?Options<K, any, C>): (K => C) {
-  var cacheKeyFn = options && options.cacheKeyFn;
+function getValidCacheKeyFn<K, C>(options?: Options<K, unknown, C>): (key: K) => C {
+  const cacheKeyFn = options && options.cacheKeyFn;
   if (cacheKeyFn === undefined) {
-    return (key => key: any);
+    return (key: any) => key;
   }
   if (typeof cacheKeyFn !== 'function') {
-    throw new TypeError(`cacheKeyFn must be a function: ${(cacheKeyFn: any)}`);
+    throw new TypeError(`cacheKeyFn must be a function: ${cacheKeyFn}`);
   }
   return cacheKeyFn;
 }
 
+
 // Private: given the DataLoader's options, produce a CacheMap to be used.
 function getValidCacheMap<K, V, C>(
-  options: ?Options<K, V, C>
+  options?: Options<K, V, C>
 ): CacheMap<C, Promise<V>> | null {
   var shouldCache = !options || options.cache !== false;
   if (!shouldCache) {
@@ -435,7 +439,7 @@ function getValidCacheMap<K, V, C>(
   if (cacheMap !== null) {
     var cacheFunctions = [ 'get', 'set', 'delete', 'clear' ];
     var missingFunctions = cacheFunctions
-      .filter(fnName => cacheMap && typeof cacheMap[fnName] !== 'function');
+      .filter(fnName => cacheMap && typeof (cacheMap as any)[fnName] !== 'function');
     if (missingFunctions.length !== 0) {
       throw new TypeError(
         'Custom cacheMap missing methods: ' + missingFunctions.join(', ')
@@ -446,7 +450,7 @@ function getValidCacheMap<K, V, C>(
 }
 
 // Private
-function isArrayLike(x: mixed): boolean {
+function isArrayLike(x: any): boolean {
   return (
     typeof x === 'object' &&
     x !== null &&
@@ -455,5 +459,3 @@ function isArrayLike(x: mixed): boolean {
       (x.length > 0 && Object.prototype.hasOwnProperty.call(x, x.length - 1)))
   );
 }
-
-module.exports = DataLoader;
