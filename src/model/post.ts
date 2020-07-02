@@ -1,5 +1,6 @@
 import { diffWords } from "../../vendor/diff.js";
-import { Context, Type, sql, execute, genUUID } from "./index.ts";
+import { DataLoader, Context, Type, sql, execute, genUUID } from "./index.ts";
+import { mapObjectsByProp, aggObjectsByProp } from "../utils.ts";
 
 interface PostCreateUpdateInput {
   title?: string;
@@ -13,18 +14,17 @@ SELECT id, author_id, title, content, is_published, publish_date
 FROM posts
 ORDER BY publish_date DESC;`;
 
-const POST_BY_ID = (id: string) =>
+const POSTS_BY_IDS = (ids: readonly string[]) =>
   sql`
 SELECT id, author_id, title, content, is_published, publish_date
 FROM posts
-WHERE id = ${id}
-LIMIT 1;`;
+WHERE id IN (${ids});`;
 
-const POSTS_BY_AUTHOR = (author_id: string) =>
+const POSTS_BY_AUTHORS = (author_ids: readonly string[]) =>
   sql`
 SELECT id, author_id, title, content, is_published, publish_date
 FROM posts
-WHERE author_id = ${author_id}
+WHERE author_id IN(${author_ids})
 ORDER BY publish_date DESC;`;
 
 export const CREATE_POST = (
@@ -74,18 +74,48 @@ export interface PostModel {
 }
 
 export const genPostModel = ({ author, model }: Context): PostModel => {
+  const postByIDLoader = new DataLoader<string, Post>(async (keys) => {
+    const mapping = mapObjectsByProp(
+      (await execute(POSTS_BY_IDS(keys))) as Post[],
+      "id"
+    );
+    return keys.map((key) => mapping[key]);
+  });
+
+  const postsByAuthorLoader = new DataLoader<string, Post[]>(async (keys) => {
+    const mapping = aggObjectsByProp(
+      (await execute(POSTS_BY_AUTHORS(keys))) as Post[],
+      "author_id",
+      (post) => {
+        postByIDLoader.prime(post.id, post);
+        return post;
+      }
+    );
+    return keys.map((key) => mapping[key]);
+  });
+
+  function primeLoaders(posts: Post[]) {
+    const mapping = aggObjectsByProp(posts, "author_id", (post) => {
+      postByIDLoader.prime(post.id, post);
+      return post;
+    });
+    Object.entries(mapping).forEach(([author_id, posts]) => {
+      postsByAuthorLoader.prime(author_id, posts);
+    });
+    return posts;
+  }
+
   return {
     async all(): Promise<Post[]> {
-      return (await execute(POSTS)) as Post[];
+      return primeLoaders((await execute(POSTS)) as Post[]);
     },
 
-    async allByAuthor(author_id: string): Promise<Post[]> {
-      return (await execute(POSTS_BY_AUTHOR(author_id))) as Post[];
+    allByAuthor(author_id: string): Promise<Post[]> {
+      return postsByAuthorLoader.load(author_id);
     },
 
-    async byID(id: string): Promise<Post> {
-      const result = await execute(POST_BY_ID(id));
-      return result[0] as Post;
+    byID(id: string): Promise<Post> {
+      return postByIDLoader.load(id);
     },
 
     async create(input: PostCreateUpdateInput): Promise<Post> {

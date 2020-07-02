@@ -1,4 +1,5 @@
-import { Context, Type, sql, execute, genUUID } from "./index.ts";
+import { DataLoader, Context, Type, sql, execute, genUUID } from "./index.ts";
+import { mapObjectsByProp, aggObjectsByProp } from "../utils.ts";
 
 export interface PostEditChange {
   text: string;
@@ -12,14 +13,14 @@ interface PostEditCreateInput {
   changes: PostEditChange[];
 }
 
-const POST_EDITS_BY_POST_ID = (post_id: string) =>
+const POST_EDITS_BY_POST_IDS = (post_ids: readonly string[]) =>
   sql`
 SELECT id, post_id, date, changes
-FROM post_edits WHERE post_id = ${post_id}
+FROM post_edits WHERE post_id IN (${post_ids})
 ORDER BY date DESC;`;
 
-const POST_EDIT_BY_ID = (id: string) =>
-  sql`SELECT id, post_id, date, changes FROM post_edits WHERE id = ${id};`;
+const POST_EDITS_BY_IDS = (ids: readonly string[]) =>
+  sql`SELECT id, post_id, date, changes FROM post_edits WHERE id IN (${ids});`;
 
 const CREATE_POST_EDIT = (
   uuid: string,
@@ -53,17 +54,37 @@ export interface PostEditModel {
 }
 
 export const genPostEditModel = (ctx: Context): PostEditModel => {
+  const postEditByIDLoader = new DataLoader<string, PostEdit>(async (keys) => {
+    const mapping = mapObjectsByProp(
+      (await execute(POST_EDITS_BY_IDS(keys))) as any[],
+      "id",
+      (edit) => fromRawData(edit)
+    );
+    return keys.map((key) => mapping[key]);
+  });
+
+  const postEditsByPostLoader = new DataLoader<string, PostEdit[]>(
+    async (keys) => {
+      const mapping = aggObjectsByProp(
+        (await execute(POST_EDITS_BY_POST_IDS(keys))) as any[],
+        "post_id",
+        (edit) => {
+          edit = fromRawData(edit);
+          postEditByIDLoader.prime(edit.id, edit);
+          return edit;
+        }
+      );
+      return keys.map((key) => mapping[key] || []);
+    }
+  );
+
   return {
-    async allByPost(post_id: string): Promise<PostEdit[]> {
-      const result = await execute(POST_EDITS_BY_POST_ID(post_id));
-      return result.map((row) => fromRawData(row));
+    allByPost(post_id: string): Promise<PostEdit[]> {
+      return postEditsByPostLoader.load(post_id);
     },
 
-    async byID(id: string): Promise<MaybePostEdit> {
-      const result = await execute(POST_EDIT_BY_ID(id));
-      if (result.length) {
-        return fromRawData(result[0]);
-      }
+    byID(id: string): Promise<MaybePostEdit> {
+      return postEditByIDLoader.load(id);
     },
 
     async create(input: PostEditCreateInput): Promise<PostEdit> {

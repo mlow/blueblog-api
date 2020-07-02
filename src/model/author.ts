@@ -1,10 +1,11 @@
 import { hash, verify } from "https://deno.land/x/argon2/lib/mod.ts";
-import { Context, Type, sql, execute, genUUID } from "./index.ts";
+import { DataLoader, Context, Type, sql, execute, genUUID } from "./index.ts";
+import { mapObjectsByProp } from "../utils.ts";
 
 const AUTHORS = sql`SELECT id, name, username, password_hash FROM authors;`;
 
-const AUTHOR_BY_ID = (id: string) =>
-  sql`SELECT id, name, username, password_hash FROM authors WHERE id = ${id} LIMIT 1;`;
+const AUTHORS_BY_IDS = (ids: readonly string[]) =>
+  sql`SELECT id, name, username, password_hash FROM authors WHERE id IN (${ids});`;
 
 const AUTHOR_BY_NAME = (name: string) =>
   sql`SELECT id, name, username, password_hash FROM authors WHERE name = ${name} LIMIT 1;`;
@@ -52,14 +53,28 @@ export interface AuthorModel {
 }
 
 export const genAuthorModel = ({ author }: Context): AuthorModel => {
+  const authorByIDLoader = new DataLoader<string, Author>(async (keys) => {
+    const mapping = mapObjectsByProp(
+      (await execute(AUTHORS_BY_IDS(keys))) as Author[],
+      "id"
+    );
+    return keys.map((id) => mapping[id]);
+  }, {});
+
+  function primeLoaders(authors: Author[]) {
+    authors.forEach((author) => {
+      authorByIDLoader.prime(author.id, author);
+    });
+    return authors;
+  }
+
   return {
     async all(): Promise<Author[]> {
-      return (await execute(AUTHORS)) as Author[];
+      return primeLoaders((await execute(AUTHORS)) as Author[]);
     },
 
-    async byID(id: string): Promise<Author> {
-      const result = await execute(AUTHOR_BY_ID(id));
-      return result[0] as Author;
+    byID(id: string): Promise<Author> {
+      return authorByIDLoader.load(id);
     },
 
     async byName(name: string): Promise<Author> {

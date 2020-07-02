@@ -91,3 +91,30 @@ export function set_jwt_cookies(author: Author, cookies: Cookies) {
 
   return jwt;
 }
+
+export function mapObjectsByProp<T>(
+  objs: T[],
+  key: string,
+  fn?: (arg: T) => T
+): { [key: string]: T } {
+  const map: { [key: string]: T } = {};
+  objs.forEach((obj: any) => {
+    obj = typeof fn !== "undefined" ? fn(obj) : obj;
+    map[obj[key]] = obj;
+  });
+  return map;
+}
+
+export function aggObjectsByProp<T>(
+  objs: T[],
+  key: string,
+  fn?: (arg: T) => T
+): { [key: string]: T[] } {
+  const map: { [key: string]: T[] } = {};
+  objs.forEach((obj: any) => {
+    obj = typeof fn !== "undefined" ? fn(obj) : obj;
+    const arr: T[] = map[obj[key]] ?? (map[obj[key]] = []);
+    arr.push(obj);
+  });
+  return map;
+}
