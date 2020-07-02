@@ -18,7 +18,7 @@ export function sql(
   const args: Array<unknown> = [];
   let argIndex = 1;
   for (let i = 0, len = strings.length; i < len; i++) {
-    query.push(strings[i].replace(/\n/g, " "));
+    query.push(strings[i]);
     if (i < len - 1) {
       let val = values[i];
       if (val instanceof Array) {
@@ -32,7 +32,7 @@ export function sql(
       }
     }
   }
-  return { text: query.join("").trim(), args: args };
+  return { text: query.join("").trim().replace(/\n/g, " "), args: args };
 }
 
 export async function execute(
