@@ -73,7 +73,7 @@ export interface PostModel {
   delete: (post_id: string) => Promise<string>;
 }
 
-export const genPostModel = ({ author, model }: Context): PostModel => {
+export const genPostModel = ({ auth, model }: Context): PostModel => {
   const postByIDLoader = new DataLoader<string, Post>(async (keys) => {
     const mapping = mapObjectsByProp(
       (await execute(POSTS_BY_IDS(keys))) as Post[],
@@ -119,23 +119,23 @@ export const genPostModel = ({ author, model }: Context): PostModel => {
     },
 
     async create(input: PostCreateUpdateInput): Promise<Post> {
-      if (!author) {
+      if (!auth.loggedIn) {
         throw new Error("Must be authenticated.");
       }
       const uuid = await genUUID(Type.Post);
-      const result = await execute(CREATE_POST(uuid, author.id, input));
+      const result = await execute(CREATE_POST(uuid, auth.id, input));
       return result[0] as Post;
     },
 
     async update(post_id: string, input: PostCreateUpdateInput): Promise<Post> {
-      if (!author) {
+      if (!auth.loggedIn) {
         throw new Error("Must be authenticated.");
       }
       const post = await this.byID(post_id);
       if (!post) {
         throw new Error("No post with that ID found.");
       }
-      if (author.id != post.author_id) {
+      if (auth.id != post.author_id) {
         throw new Error("You cannot edit another author's post.");
       }
 
@@ -164,14 +164,14 @@ export const genPostModel = ({ author, model }: Context): PostModel => {
     },
 
     async delete(post_id: string): Promise<string> {
-      if (!author) {
+      if (!auth.loggedIn) {
         throw new Error("Must be authenticated.");
       }
       const post = await this.byID(post_id);
       if (!post) {
         throw new Error("No post with that ID found.");
       }
-      if (author.id != post.author_id) {
+      if (auth.id != post.author_id) {
         throw new Error("You cannot delete another author's post.");
       }
 

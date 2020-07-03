@@ -52,7 +52,7 @@ export interface AuthorModel {
   update: ({ name, username, password, new_password }: any) => Promise<Author>;
 }
 
-export const genAuthorModel = ({ author }: Context): AuthorModel => {
+export const genAuthorModel = ({ auth }: Context): AuthorModel => {
   const authorByIDLoader = new DataLoader<string, Author>(async (keys) => {
     const mapping = mapObjectsByProp(
       (await execute(AUTHORS_BY_IDS(keys))) as Author[],
@@ -122,9 +122,10 @@ export const genAuthorModel = ({ author }: Context): AuthorModel => {
       password,
       new_password,
     }: any): Promise<Author> {
-      if (!author) {
+      if (!auth.loggedIn) {
         throw new Error("Must be authenticated.");
       }
+      const author = await this.byID(auth.id);
       if (!(await verify(author.password_hash, password))) {
         throw new Error("Current password is incorrect.");
       }
