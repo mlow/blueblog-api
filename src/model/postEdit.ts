@@ -74,7 +74,7 @@ export const genPostEditModel = (ctx: Context): PostEditModel => {
           return edit;
         }
       );
-      return keys.map((key) => mapping[key] || []);
+      return keys.map((key) => mapping[key] ?? []);
     }
   );
 

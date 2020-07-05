@@ -91,7 +91,7 @@ export const genPostModel = ({ auth, model }: Context): PostModel => {
         return post;
       }
     );
-    return keys.map((key) => mapping[key]);
+    return keys.map((key) => mapping[key] ?? []);
   });
 
   function primeLoaders(posts: Post[]) {
