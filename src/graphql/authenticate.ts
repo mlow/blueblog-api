@@ -1,7 +1,7 @@
-import { gql, verify } from "../mods.ts";
+import { gql, verify } from "../mods";
 
-import { set_jwt_cookies } from "../utils.ts";
-import { Context } from "../model/index.ts";
+import { set_jwt_cookies } from "../utils";
+import { Context } from "../model/index";
 
 export const typeDefs = gql`
   type Mutation {
@@ -18,16 +18,16 @@ export const resolvers = {
     authenticate: async (
       obj: any,
       { username, password }: any,
-      { model, cookies }: Context
+      ctx: Context
     ) => {
-      const author = await model.Author.byUsername(username);
+      const author = await ctx.model.Author.byUsername(username);
       if (!author) {
         throw new Error("User not found.");
       }
       if (!(await verify(author.password_hash, password))) {
         throw new Error("Password incorrect.");
       }
-      return set_jwt_cookies(author, cookies);
+      return set_jwt_cookies(author, ctx);
     },
   },
 };

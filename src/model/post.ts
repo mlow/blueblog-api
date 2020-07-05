@@ -1,6 +1,6 @@
-import { diffWords } from "../mods.ts";
-import { DataLoader, Context, Type, sql, execute, genUUID } from "./index.ts";
-import { mapObjectsByProp, aggObjectsByProp } from "../utils.ts";
+import { diffWords } from "../mods";
+import { DataLoader, Context, Type, sql, execute, genUUID } from "./index";
+import { mapObjectsByProp, aggObjectsByProp } from "../utils";
 
 interface PostCreateUpdateInput {
   title?: string;

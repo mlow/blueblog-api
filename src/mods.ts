@@ -1,42 +1,39 @@
-// Oak
-export {
-  Router,
-  RouterContext,
-  Application,
-  Cookies,
-  Context,
-} from "https://deno.land/x/oak/mod.ts";
+// Koa
+import Application from "koa";
+export { Application };
+export { Context } from "koa";
+import Router from "koa-router";
+export { Router };
+export { RouterContext } from "koa-router";
+import bodyParser from "koa-bodyparser";
+export { bodyParser };
 
 // Postgres
-export { Pool } from "https://deno.land/x/postgres/mod.ts";
-export { PoolClient } from "https://deno.land/x/postgres/client.ts";
-export { QueryConfig } from "https://deno.land/x/postgres/query.ts";
+export { Pool, PoolClient, QueryConfig } from "pg";
 
 // Dotenv
-export { config as dotenv } from "https://deno.land/x/dotenv/mod.ts";
-
-// djwt
-export { makeJwt } from "https://deno.land/x/djwt/create.ts";
-export { validateJwt } from "https://deno.land/x/djwt/validate.ts";
+export { config as dotenv } from "dotenv";
 
 // argon2
-export { hash, verify } from "https://deno.land/x/argon2/lib/mod.ts";
+export { hash, verify } from "argon2";
 
 // DataLoader
-export { DataLoader } from "../vendor/dataloader.ts";
+import DataLoader from "dataloader";
+export { DataLoader };
 
 // jsdiff
-export { diffWords } from "../vendor/diff.js";
+export { diffWords } from "diff";
+
+// jsonwebtoken
+export { sign, verify as validateJwt } from "jsonwebtoken";
 
 // graphql
-export { graphql, GraphQLScalarType } from "../vendor/graphql.js";
+export { graphql, GraphQLScalarType } from "graphql";
 
 // graphql-tag
-export { default as gql } from "../vendor/graphql-tag.js";
+import gql from "graphql-tag";
+export { gql };
 
 // graphql-tools
-export { makeExecutableSchema } from "../vendor/graphql-tools/schema.js";
-export {
-  mergeTypeDefs,
-  mergeResolvers,
-} from "../vendor/graphql-tools/merge.js";
+export { makeExecutableSchema } from "@graphql-tools/schema";
+export { mergeTypeDefs, mergeResolvers } from "@graphql-tools/merge";

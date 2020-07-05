@@ -1,10 +1,10 @@
-import { Application, Context, validateJwt } from "./mods.ts";
-import { config } from "./main.ts";
+import { Application, Context, validateJwt } from "./mods";
+import { config } from "./main";
 
 type Authentication = { loggedIn: true; id: string } | { loggedIn: false };
 
-declare module "./mods.ts" {
-  interface Context {
+declare module "koa" {
+  interface ExtendableContext {
     auth: Authentication;
   }
 }
@@ -13,7 +13,7 @@ async function getAuthentication({
   request,
   cookies,
 }: Context): Promise<Authentication> {
-  const auth = request.headers.get("Authorization");
+  const auth = request.headers.authorization;
   if (!auth) {
     return { loggedIn: false };
   }
@@ -37,14 +37,16 @@ async function getAuthentication({
     throw new Error("Malformed JWT.");
   }
 
-  const validatedJwt = await validateJwt(full_jwt, config["SECRET"]);
-  if (!validatedJwt.isValid || !validatedJwt.payload?.sub) {
-    throw new Error("Invalid JWT");
+  let validatedJwt;
+  try {
+    validatedJwt = validateJwt(full_jwt, config["SECRET"]) as any;
+  } catch {
+    throw new Error("Invalid JWT.");
   }
 
   return {
     loggedIn: true,
-    id: validatedJwt.payload.sub,
+    id: validatedJwt.sub,
   };
 }
 

@@ -1,5 +1,5 @@
-import { gql } from "../mods.ts";
-import { Type, Context, getTypeByUUID } from "../model/index.ts";
+import { gql } from "../mods";
+import { Type, Context, getTypeByUUID } from "../model/index";
 
 export const typeDefs = gql`
   """

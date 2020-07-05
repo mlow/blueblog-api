@@ -1,4 +1,4 @@
-import { gql, GraphQLScalarType } from "../mods.ts";
+import { gql, GraphQLScalarType } from "../mods";
 
 export const typeDefs = gql`
   """

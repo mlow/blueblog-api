@@ -1,10 +1,10 @@
 import {
+  Application,
   Router,
   RouterContext,
-  Application,
   graphql,
   makeExecutableSchema,
-} from "./mods.ts";
+} from "./mods";
 
 export interface ResolversProps {
   Query?: any;
@@ -42,44 +42,42 @@ export const applyGraphQL = ({
 
   router.post(path, async (ctx) => {
     const { response, request } = ctx;
+
+    if (!request.is("application/json") || !request.body) {
+      response.status = 415;
+      response.body = {
+        error: { message: "Request body must be in json format." },
+      };
+      return;
+    }
+
     const contextResult = context ? await context(ctx) : ctx;
-    if (request.hasBody) {
-      try {
-        const body = await request.body();
+    const { query, variables, operationName } = request.body;
 
-        if (body.type !== "json") {
-          response.status = 415;
-          response.body = {
-            error: { message: "Request body must be in json format." },
-          };
-          return;
-        }
-
-        const { query, variables, operationName } = body.value;
-        if (!query) {
-          response.status = 422;
-          response.body = {
-            error: { message: "Body missing 'query' parameter." },
-          };
-          return;
-        }
-
-        const result: any = await graphql(
-          schema,
-          query,
-          resolvers,
-          contextResult,
-          variables,
-          operationName
-        );
-
-        response.body = result;
-      } catch (error) {
-        response.status = 500;
+    try {
+      if (!query) {
+        response.status = 422;
         response.body = {
-          error: error.message,
+          error: { message: "Body missing 'query' parameter." },
         };
+        return;
       }
+
+      const result: any = await graphql(
+        schema,
+        query,
+        resolvers,
+        contextResult,
+        variables,
+        operationName
+      );
+
+      response.body = result;
+    } catch (error) {
+      response.status = 500;
+      response.body = {
+        error: error.message,
+      };
     }
   });
 

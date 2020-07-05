@@ -1,5 +1,5 @@
-import { gql } from "../mods.ts";
-import { Context, Post } from "../model/index.ts";
+import { gql } from "../mods";
+import { Context, Post } from "../model/index";
 
 export const typeDefs = gql`
   """

@@ -1,28 +1,28 @@
-import { mergeTypeDefs, mergeResolvers } from "../mods.ts";
+import { mergeTypeDefs, mergeResolvers } from "../mods";
 
 import {
   typeDefs as scalarTypes,
   resolvers as scalarResolvers,
-} from "./scalars.ts";
+} from "./scalars";
 
-import { typeDefs as nodeTypes, resolvers as nodeResolvers } from "./node.ts";
+import { typeDefs as nodeTypes, resolvers as nodeResolvers } from "./node";
 
 import {
   typeDefs as authTypes,
   resolvers as authResolvers,
-} from "./authenticate.ts";
+} from "./authenticate";
 
 import {
   typeDefs as authorTypes,
   resolvers as authorResolvers,
-} from "./author.ts";
+} from "./author";
 
-import { typeDefs as postTypes, resolvers as postResolvers } from "./post.ts";
+import { typeDefs as postTypes, resolvers as postResolvers } from "./post";
 
 import {
   typeDefs as postEditTypes,
   resolvers as postEditResolvers,
-} from "./postEdit.ts";
+} from "./postEdit";
 
 export const typeDefs = mergeTypeDefs([
   scalarTypes,

@@ -1,7 +1,7 @@
-import { gql } from "../mods.ts";
-import { Context, Author } from "../model/index.ts";
+import { gql } from "../mods";
+import { Context, Author } from "../model/index";
 
-import { set_jwt_cookies } from "../utils.ts";
+import { set_jwt_cookies } from "../utils";
 
 export const typeDefs = gql`
   """
@@ -61,7 +61,7 @@ export const resolvers = {
     },
     updateAuthor: async (obj: any, { input }: any, ctx: Context) => {
       const author = await ctx.model.Author.update(input);
-      set_jwt_cookies(author, ctx.cookies);
+      set_jwt_cookies(author, ctx);
       return author;
     },
   },

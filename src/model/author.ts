@@ -1,6 +1,6 @@
-import { hash, verify } from "../mods.ts";
-import { DataLoader, Context, Type, sql, execute, genUUID } from "./index.ts";
-import { mapObjectsByProp } from "../utils.ts";
+import { hash, verify } from "../mods";
+import { DataLoader, Context, Type, sql, execute, genUUID } from "./index";
+import { mapObjectsByProp } from "../utils";
 
 const AUTHORS = sql`SELECT id, name, username, password_hash FROM authors;`;
 
@@ -100,9 +100,7 @@ export const genAuthorModel = ({ auth }: Context): AuthorModel => {
         throw new Error("That username is already taken.");
       }
 
-      const password_hash = await hash(password, {
-        salt: crypto.getRandomValues(new Uint8Array(16)),
-      });
+      const password_hash = await hash(password);
 
       const uuid = await genUUID(Type.Author);
       const result = await execute(
@@ -130,9 +128,7 @@ export const genAuthorModel = ({ auth }: Context): AuthorModel => {
         throw new Error("Current password is incorrect.");
       }
       if (new_password) {
-        author.password_hash = await hash(new_password, {
-          salt: crypto.getRandomValues(new Uint8Array(16)),
-        });
+        author.password_hash = await hash(new_password);
       }
       author.name = name ?? author.name;
       author.username = username ?? author.username;

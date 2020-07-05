@@ -1,4 +1,4 @@
-import { gql } from "../mods.ts";
+import { gql } from "../mods";
 
 export const typeDefs = gql`
   """

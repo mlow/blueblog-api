@@ -1,14 +1,14 @@
-import { Context, DataLoader } from "../mods.ts";
-import { sql, execute } from "../utils.ts";
+import { Context, DataLoader } from "../mods";
+import { sql, execute } from "../utils";
 export { Context, DataLoader, sql, execute };
 
-import { genAuthorModel, AuthorModel } from "./author.ts";
-import { genPostModel, PostModel } from "./post.ts";
-import { genPostEditModel, PostEditModel } from "./postEdit.ts";
+import { genAuthorModel, AuthorModel } from "./author";
+import { genPostModel, PostModel } from "./post";
+import { genPostEditModel, PostEditModel } from "./postEdit";
 
-export { Author } from "./author.ts";
-export { Post } from "./post.ts";
-export { PostEdit, PostEditChange } from "./postEdit.ts";
+export { Author } from "./author";
+export { Post } from "./post";
+export { PostEdit, PostEditChange } from "./postEdit";
 
 export const enum Type {
   Author = "Author",

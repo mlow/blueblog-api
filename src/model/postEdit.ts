@@ -1,5 +1,5 @@
-import { DataLoader, Context, Type, sql, execute, genUUID } from "./index.ts";
-import { mapObjectsByProp, aggObjectsByProp } from "../utils.ts";
+import { DataLoader, Context, Type, sql, execute, genUUID } from "./index";
+import { mapObjectsByProp, aggObjectsByProp } from "../utils";
 
 export interface PostEditChange {
   text: string;

@@ -1,8 +1,8 @@
-import { Cookies, PoolClient, QueryConfig, makeJwt } from "./mods.ts";
+import { Context, PoolClient, QueryConfig, sign as makeJwt } from "./mods";
 
-import { pool } from "./main.ts";
-import { config } from "./main.ts";
-import { Author } from "./model/author.ts";
+import { pool } from "./main";
+import { config } from "./main";
+import { Author } from "./model/author";
 
 export function sql(
   strings: TemplateStringsArray,
@@ -29,19 +29,19 @@ export function sql(
       }
     }
   }
-  return { text: query.join("").trim().replace(/\n/g, " "), args: args };
+  return { text: query.join("").trim().replace(/\n/g, " "), values: args };
 }
 
 export async function execute(
   query: QueryConfig | string,
   client?: PoolClient
-): Promise<{ [key: string]: any }[]> {
+): Promise<any[]> {
   const start = Date.now();
   try {
     if (client) {
-      return (await client.query(query)).rowsOfObjects();
+      return (await client.query(query)).rows;
     } else {
-      return (await pool.query(query)).rowsOfObjects();
+      return (await pool.query(query)).rows;
     }
   } finally {
     console.log(
@@ -52,35 +52,32 @@ export async function execute(
   }
 }
 
-export function set_jwt_cookies(author: Author, cookies: Cookies) {
-  const now: number = new Date().getTime();
-  const exp: number = 24 * 60 * 60 * 1000;
-  const jwt = makeJwt({
-    key: config["SECRET"],
-    header: {
-      alg: "HS256",
-    },
-    payload: {
+export function set_jwt_cookies(author: Author, ctx: Context) {
+  const exp: number = 24 * 60 * 60 * 1000; // 1 day
+  const jwt = makeJwt(
+    {
       sub: author.id,
-      iat: now,
-      exp: now + exp,
       author: {
         id: author.id,
         name: author.name,
         username: author.username,
       },
     },
-  });
+    config["SECRET"],
+    {
+      expiresIn: exp / 1000,
+    }
+  );
 
   const jwt_parts = jwt.split(".");
   const header_payload = jwt_parts.slice(0, 2).join(".");
   const signature = jwt_parts[2];
-  cookies.set("jwt.header.payload", header_payload, {
+  ctx.cookies.set("jwt.header.payload", header_payload, {
     maxAge: exp,
     httpOnly: false,
     sameSite: "strict",
   });
-  cookies.set("jwt.signature", signature, {
+  ctx.cookies.set("jwt.signature", signature, {
     maxAge: exp,
     httpOnly: true,
     sameSite: "strict",
