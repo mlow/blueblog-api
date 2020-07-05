@@ -2,11 +2,17 @@ CREATE TABLE IF NOT EXISTS types (
     id smallserial PRIMARY KEY,
     type text UNIQUE
 );
-INSERT INTO types (type)
-VALUES ('Author'), ('Post'), ('PostEdit'), ('Comment');
+
+INSERT INTO
+    types (type)
+VALUES
+    ('Author'),
+    ('Post'),
+    ('PostEdit'),
+    ('Comment');
 
 CREATE TABLE IF NOT EXISTS uuids (
-    uuid uuid NOT NULL DEFAULT uuid_generate_v4(),
+    uuid uuid NOT NULL DEFAULT uuid_generate_v1mc(),
     type_id smallint NOT NULL REFERENCES types (id) ON DELETE CASCADE,
     PRIMARY KEY (uuid)
 );
