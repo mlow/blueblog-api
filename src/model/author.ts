@@ -95,7 +95,7 @@ export const genAuthorModel = ({ auth }: Context): AuthorModel => {
     },
 
     async create({ name, username, password }: any): Promise<Author> {
-      const author = this.byUsername(username);
+      const author = await this.byUsername(username);
       if (author) {
         throw new Error("That username is already taken.");
       }
