@@ -1,8 +1,6 @@
-import { Context } from "https://deno.land/x/oak/mod.ts";
+import { Context, DataLoader } from "../mods.ts";
 import { sql, execute } from "../utils.ts";
-export { Context, sql, execute };
-
-export { DataLoader } from "../../vendor/dataloader.ts";
+export { Context, DataLoader, sql, execute };
 
 import { genAuthorModel, AuthorModel } from "./author.ts";
 import { genPostModel, PostModel } from "./post.ts";

@@ -1,5 +1,4 @@
-import gql from "../../vendor/graphql-tag.js";
-
+import { gql } from "../mods.ts";
 import { Context, Post } from "../model/index.ts";
 
 export const typeDefs = gql`

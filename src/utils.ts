@@ -1,7 +1,4 @@
-import { Cookies } from "https://deno.land/x/oak/mod.ts";
-import { PoolClient } from "https://deno.land/x/postgres/client.ts";
-import { QueryConfig } from "https://deno.land/x/postgres/query.ts";
-import { makeJwt } from "https://deno.land/x/djwt/create.ts";
+import { Cookies, PoolClient, QueryConfig, makeJwt } from "./mods.ts";
 
 import { pool } from "./main.ts";
 import { config } from "./main.ts";

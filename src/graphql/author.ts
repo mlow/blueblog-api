@@ -1,5 +1,4 @@
-import gql from "../../vendor/graphql-tag.js";
-
+import { gql } from "../mods.ts";
 import { Context, Author } from "../model/index.ts";
 
 import { set_jwt_cookies } from "../utils.ts";

@@ -1,5 +1,4 @@
-import gql from "../../vendor/graphql-tag.js";
-import { verify } from "https://deno.land/x/argon2/lib/mod.ts";
+import { gql, verify } from "../mods.ts";
 
 import { set_jwt_cookies } from "../utils.ts";
 import { Context } from "../model/index.ts";

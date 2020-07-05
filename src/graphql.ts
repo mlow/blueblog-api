@@ -2,10 +2,9 @@ import {
   Router,
   RouterContext,
   Application,
-} from "https://deno.land/x/oak/mod.ts";
-
-import { graphql } from "../vendor/graphql.js";
-import { makeExecutableSchema } from "../vendor/graphql-tools/schema.js";
+  graphql,
+  makeExecutableSchema,
+} from "./mods.ts";
 
 export interface ResolversProps {
   Query?: any;

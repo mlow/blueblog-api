@@ -1,5 +1,4 @@
-import gql from "../../vendor/graphql-tag.js";
-
+import { gql } from "../mods.ts";
 import { Type, Context, getTypeByUUID } from "../model/index.ts";
 
 export const typeDefs = gql`

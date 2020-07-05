@@ -1,7 +1,4 @@
-import {
-  mergeTypeDefs,
-  mergeResolvers,
-} from "../../vendor/graphql-tools/merge.js";
+import { mergeTypeDefs, mergeResolvers } from "../mods.ts";
 
 import {
   typeDefs as scalarTypes,

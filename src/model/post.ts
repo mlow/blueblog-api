@@ -1,4 +1,4 @@
-import { diffWords } from "../../vendor/diff.js";
+import { diffWords } from "../mods.ts";
 import { DataLoader, Context, Type, sql, execute, genUUID } from "./index.ts";
 import { mapObjectsByProp, aggObjectsByProp } from "../utils.ts";
 

@@ -1,11 +1,10 @@
-import { Application, Context } from "https://deno.land/x/oak/mod.ts";
-import { validateJwt } from "https://deno.land/x/djwt/validate.ts";
+import { Application, Context, validateJwt } from "./mods.ts";
 import { config } from "./main.ts";
 
 type Authentication = { loggedIn: true; id: string } | { loggedIn: false };
 
-declare module "https://deno.land/x/oak/mod.ts" {
-  export interface Context {
+declare module "./mods.ts" {
+  interface Context {
     auth: Authentication;
   }
 }

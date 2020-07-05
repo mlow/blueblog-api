@@ -1,6 +1,4 @@
-import gql from "../../vendor/graphql-tag.js";
-
-import { GraphQLScalarType } from "../../vendor/graphql.js";
+import { gql, GraphQLScalarType } from "../mods.ts";
 
 export const typeDefs = gql`
   """

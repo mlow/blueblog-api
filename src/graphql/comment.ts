@@ -1,4 +1,4 @@
-import gql from "../../vendor/graphql-tag.js";
+import { gql } from "../mods.ts";
 
 export const typeDefs = gql`
   """

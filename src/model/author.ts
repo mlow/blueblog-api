@@ -1,4 +1,4 @@
-import { hash, verify } from "https://deno.land/x/argon2/lib/mod.ts";
+import { hash, verify } from "../mods.ts";
 import { DataLoader, Context, Type, sql, execute, genUUID } from "./index.ts";
 import { mapObjectsByProp } from "../utils.ts";
 
