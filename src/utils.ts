@@ -1,56 +1,7 @@
-import { Context, PoolClient, QueryConfig, sign as makeJwt } from "./mods";
+import { Context, sign as makeJwt } from "./mods";
 
-import { pool } from "./main";
 import { config } from "./main";
 import { Author } from "./model/author";
-
-export function sql(
-  strings: TemplateStringsArray,
-  ...values: any[]
-): QueryConfig {
-  if (strings.length == 1)
-    return { text: strings[0].trim().replace(/\n/g, " ") };
-
-  const query: string[] = [];
-  const args: Array<unknown> = [];
-  let argIndex = 1;
-  for (let i = 0, len = strings.length; i < len; i++) {
-    query.push(strings[i]);
-    if (i < len - 1) {
-      let val = values[i];
-      if (val instanceof Array) {
-        // When val is an array, add placeholders for each value to the
-        // query with comma separation.
-        query.push(val.map(() => "$" + argIndex++).join(","));
-        args.push(...val);
-      } else {
-        query.push("$" + argIndex++);
-        args.push(val);
-      }
-    }
-  }
-  return { text: query.join("").trim().replace(/\n/g, " "), values: args };
-}
-
-export async function execute(
-  query: QueryConfig | string,
-  client?: PoolClient
-): Promise<any[]> {
-  const start = Date.now();
-  try {
-    if (client) {
-      return (await client.query(query)).rows;
-    } else {
-      return (await pool.query(query)).rows;
-    }
-  } finally {
-    console.log(
-      "\x1b[31mquery\x1b[0m %s \x1b[31m+%dms\x1b[0m",
-      typeof query == "string" ? query : query.text,
-      Date.now() - start
-    );
-  }
-}
 
 export function set_jwt_cookies(author: Author, ctx: Context) {
   const exp: number = 24 * 60 * 60 * 1000; // 1 day

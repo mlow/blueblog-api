@@ -1,40 +1,6 @@
 import { hash, verify } from "../mods";
-import { DataLoader, Context, Type, sql, execute, genUUID } from "./index";
+import { DataLoader, Context, Type, qb, genUUID } from "./index";
 import { mapObjectsByProp } from "../utils";
-
-const AUTHORS = sql`SELECT id, name, username, password_hash FROM authors;`;
-
-const AUTHORS_BY_IDS = (ids: readonly string[]) =>
-  sql`SELECT id, name, username, password_hash FROM authors WHERE id IN (${ids});`;
-
-const AUTHORS_BY_NAMES = (names: readonly string[]) =>
-  sql`SELECT id, name, username, password_hash FROM authors WHERE name IN (${names});`;
-
-const AUTHOR_BY_USERNAME = (username: string) =>
-  sql`SELECT id, name, username, password_hash FROM authors WHERE username = LOWER(${username}) LIMIT 1;`;
-
-export interface AuthorCreateParams {
-  name: string;
-  username: string;
-  password_hash: string;
-}
-
-const CREATE_AUTHOR = (
-  uuid: string,
-  { name, username, password_hash }: AuthorCreateParams
-) =>
-  sql`
-INSERT INTO authors (id, name, username, password_hash)
-VALUES (${uuid}, ${name}, LOWER(${username}), ${password_hash})
-RETURNING id, name;`;
-
-const UPDATE_AUTHOR = (author: Author) =>
-  sql`
-UPDATE authors
-SET name = ${author.name},
-    username = ${author.username},
-    password_hash = ${author.password_hash}
-WHERE id = ${author.id};`;
 
 export interface Author {
   id: string;
@@ -55,7 +21,7 @@ export interface AuthorModel {
 export const genAuthorModel = ({ auth }: Context): AuthorModel => {
   const authorByIDLoader = new DataLoader<string, Author>(async (keys) => {
     const mapping = mapObjectsByProp(
-      (await execute(AUTHORS_BY_IDS(keys))) as Author[],
+      await qb<Author>("authors").whereIn("id", keys),
       "id"
     );
     return keys.map((id) => mapping[id]);
@@ -63,7 +29,7 @@ export const genAuthorModel = ({ auth }: Context): AuthorModel => {
 
   const authorByNameLoader = new DataLoader<string, Author>(async (keys) => {
     const mapping = mapObjectsByProp(
-      (await execute(AUTHORS_BY_NAMES(keys))) as Author[],
+      await qb<Author>("authors").whereIn("name", keys),
       "name"
     );
     return keys.map((id) => mapping[id]);
@@ -78,7 +44,7 @@ export const genAuthorModel = ({ auth }: Context): AuthorModel => {
 
   return {
     async all(): Promise<Author[]> {
-      return primeLoaders((await execute(AUTHORS)) as Author[]);
+      return primeLoaders(await qb<Author>("authors"));
     },
 
     byID(id: string): Promise<Author> {
@@ -90,28 +56,25 @@ export const genAuthorModel = ({ auth }: Context): AuthorModel => {
     },
 
     async byUsername(username: string): Promise<Author> {
-      const result = await execute(AUTHOR_BY_USERNAME(username));
-      return result[0] as Author;
+      return (await qb<Author>("authors").where("username", username))[0];
     },
 
     async create({ name, username, password }: any): Promise<Author> {
-      const author = await this.byUsername(username);
+      let author = await this.byUsername(username);
       if (author) {
         throw new Error("That username is already taken.");
       }
 
-      const password_hash = await hash(password);
-
-      const uuid = await genUUID(Type.Author);
-      const result = await execute(
-        CREATE_AUTHOR(uuid, {
+      [author] = await qb<Author>("authors").insert(
+        {
+          id: await genUUID(Type.Author),
           name,
           username,
-          password_hash,
-        })
+          password_hash: await hash(password),
+        },
+        "*"
       );
-
-      return result[0] as Author;
+      return author;
     },
 
     async update({
@@ -123,16 +86,21 @@ export const genAuthorModel = ({ auth }: Context): AuthorModel => {
       if (!auth.loggedIn) {
         throw new Error("Must be authenticated.");
       }
-      const author = await this.byID(auth.id);
+      let author = await this.byID(auth.id);
       if (!(await verify(author.password_hash, password))) {
         throw new Error("Current password is incorrect.");
       }
+
       if (new_password) {
         author.password_hash = await hash(new_password);
       }
       author.name = name ?? author.name;
       author.username = username ?? author.username;
-      await execute(UPDATE_AUTHOR(author));
+
+      [author] = await qb<Author>("authors")
+        .where("id", author.id)
+        .update(author, "*");
+
       return author;
     },
   };

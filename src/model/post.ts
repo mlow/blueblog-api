@@ -1,5 +1,5 @@
 import { diffWords } from "../mods";
-import { DataLoader, Context, Type, sql, execute, genUUID } from "./index";
+import { DataLoader, Context, Type, qb, genUUID } from "./index";
 import { mapObjectsByProp, aggObjectsByProp } from "../utils";
 
 interface PostCreateUpdateInput {
@@ -8,52 +8,6 @@ interface PostCreateUpdateInput {
   is_published?: boolean;
   publish_date?: Date;
 }
-
-const POSTS = sql`
-SELECT id, author_id, title, content, is_published, publish_date
-FROM posts
-ORDER BY publish_date DESC;`;
-
-const POSTS_BY_IDS = (ids: readonly string[]) =>
-  sql`
-SELECT id, author_id, title, content, is_published, publish_date
-FROM posts
-WHERE id IN (${ids});`;
-
-const POSTS_BY_AUTHORS = (author_ids: readonly string[]) =>
-  sql`
-SELECT id, author_id, title, content, is_published, publish_date
-FROM posts
-WHERE author_id IN(${author_ids})
-ORDER BY publish_date DESC;`;
-
-export const CREATE_POST = (
-  uuid: string,
-  author_id: string,
-  input: PostCreateUpdateInput
-) =>
-  sql`
-INSERT INTO posts (id, author_id, title, content, is_published, publish_date)
-VALUES (
-  ${uuid},
-  ${author_id},
-  ${input.title},
-  ${input.content},
-  ${input.is_published ?? false},
-  ${input.publish_date ?? new Date()}
-) RETURNING id, author_id, title, content, is_published, publish_date;`;
-
-export const UPDATE_POST = (post: Post) =>
-  sql`
-UPDATE posts
-  SET title = ${post.title},
-      content = ${post.content},
-      is_published = ${post.is_published},
-      publish_date = ${post.publish_date}
-  WHERE id = ${post.id};`;
-
-export const DELETE_POST = (uuid: string) =>
-  sql`DELETE FROM posts WHERE id = ${uuid};`;
 
 export interface Post {
   id: string;
@@ -76,7 +30,7 @@ export interface PostModel {
 export const genPostModel = ({ auth, model }: Context): PostModel => {
   const postByIDLoader = new DataLoader<string, Post>(async (keys) => {
     const mapping = mapObjectsByProp(
-      (await execute(POSTS_BY_IDS(keys))) as Post[],
+      await qb<Post>("posts").whereIn("id", keys).orderBy("publish_date"),
       "id"
     );
     return keys.map((key) => mapping[key]);
@@ -84,7 +38,9 @@ export const genPostModel = ({ auth, model }: Context): PostModel => {
 
   const postsByAuthorLoader = new DataLoader<string, Post[]>(async (keys) => {
     const mapping = aggObjectsByProp(
-      (await execute(POSTS_BY_AUTHORS(keys))) as Post[],
+      await qb<Post>("posts")
+        .whereIn("author_id", keys)
+        .orderBy("publish_date", "desc"),
       "author_id",
       (post) => {
         postByIDLoader.prime(post.id, post);
@@ -107,7 +63,9 @@ export const genPostModel = ({ auth, model }: Context): PostModel => {
 
   return {
     async all(): Promise<Post[]> {
-      return primeLoaders((await execute(POSTS)) as Post[]);
+      return primeLoaders(
+        await qb<Post>("posts").orderBy("publish_date", "desc")
+      );
     },
 
     allByAuthor(author_id: string): Promise<Post[]> {
@@ -122,16 +80,22 @@ export const genPostModel = ({ auth, model }: Context): PostModel => {
       if (!auth.loggedIn) {
         throw new Error("Must be authenticated.");
       }
-      const uuid = await genUUID(Type.Post);
-      const result = await execute(CREATE_POST(uuid, auth.id, input));
-      return result[0] as Post;
+      const [post] = await qb<Post>("posts").insert(
+        {
+          id: await genUUID(Type.Post),
+          author_id: auth.id,
+          ...input,
+        },
+        "*"
+      );
+      return post;
     },
 
     async update(post_id: string, input: PostCreateUpdateInput): Promise<Post> {
       if (!auth.loggedIn) {
         throw new Error("Must be authenticated.");
       }
-      const post = await this.byID(post_id);
+      let post = await this.byID(post_id);
       if (!post) {
         throw new Error("No post with that ID found.");
       }
@@ -158,8 +122,7 @@ export const genPostModel = ({ auth, model }: Context): PostModel => {
       post.is_published = input.is_published ?? post.is_published;
       post.publish_date = input.publish_date ?? post.publish_date;
 
-      await execute(UPDATE_POST(post));
-
+      [post] = await qb<Post>("posts").where("id", post.id).update(post, "*");
       return post;
     },
 
@@ -175,7 +138,8 @@ export const genPostModel = ({ auth, model }: Context): PostModel => {
         throw new Error("You cannot delete another author's post.");
       }
 
-      await execute(DELETE_POST(post.id));
+      await qb<Post>("posts").where("id", post.id).delete();
+
       return post.id;
     },
   };

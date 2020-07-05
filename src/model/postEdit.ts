@@ -1,4 +1,4 @@
-import { DataLoader, Context, Type, sql, execute, genUUID } from "./index";
+import { DataLoader, Context, Type, qb, genUUID } from "./index";
 import { mapObjectsByProp, aggObjectsByProp } from "../utils";
 
 export interface PostEditChange {
@@ -12,24 +12,6 @@ interface PostEditCreateInput {
   date: Date;
   changes: PostEditChange[];
 }
-
-const POST_EDITS_BY_POST_IDS = (post_ids: readonly string[]) =>
-  sql`
-SELECT id, post_id, date, changes
-FROM post_edits WHERE post_id IN (${post_ids})
-ORDER BY date DESC;`;
-
-const POST_EDITS_BY_IDS = (ids: readonly string[]) =>
-  sql`SELECT id, post_id, date, changes FROM post_edits WHERE id IN (${ids});`;
-
-const CREATE_POST_EDIT = (
-  uuid: string,
-  { post_id, date, changes }: PostEditCreateInput
-) =>
-  sql`
-INSERT INTO post_edits (id, post_id, date, changes)
-VALUES (${uuid}, ${post_id}, ${date}, ${JSON.stringify(changes)})
-RETURNING id, post_id, date, changes;`;
 
 export interface PostEdit {
   id: string;
@@ -56,7 +38,9 @@ export interface PostEditModel {
 export const genPostEditModel = (ctx: Context): PostEditModel => {
   const postEditByIDLoader = new DataLoader<string, PostEdit>(async (keys) => {
     const mapping = mapObjectsByProp(
-      (await execute(POST_EDITS_BY_IDS(keys))) as any[],
+      await qb<PostEdit>("post_edits")
+        .whereIn("id", keys)
+        .orderBy("date", "desc"),
       "id",
       (edit) => fromRawData(edit)
     );
@@ -66,7 +50,9 @@ export const genPostEditModel = (ctx: Context): PostEditModel => {
   const postEditsByPostLoader = new DataLoader<string, PostEdit[]>(
     async (keys) => {
       const mapping = aggObjectsByProp(
-        (await execute(POST_EDITS_BY_POST_IDS(keys))) as any[],
+        await qb<PostEdit>("post_edits")
+          .whereIn("post_id", keys)
+          .orderBy("date", "desc"),
         "post_id",
         (edit) => {
           edit = fromRawData(edit);
@@ -88,9 +74,16 @@ export const genPostEditModel = (ctx: Context): PostEditModel => {
     },
 
     async create(input: PostEditCreateInput): Promise<PostEdit> {
-      const uuid = await genUUID(Type.PostEdit);
-      const result = await execute(CREATE_POST_EDIT(uuid, input));
-      return fromRawData(result[0]);
+      const [result] = await qb("post_edits").insert(
+        {
+          ...input,
+          id: await genUUID(Type.PostEdit),
+          changes: JSON.stringify(input.changes),
+        },
+        "*"
+      );
+      console.log(result);
+      return fromRawData(result);
     },
   };
 };

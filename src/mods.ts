@@ -8,6 +8,10 @@ export { RouterContext } from "koa-router";
 import bodyParser from "koa-bodyparser";
 export { bodyParser };
 
+// knex
+import Knex from "knex";
+export { Knex };
+
 // Postgres
 export { Pool, PoolClient, QueryConfig } from "pg";
 

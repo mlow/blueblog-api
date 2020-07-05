@@ -1,4 +1,4 @@
-import { dotenv, Application, bodyParser, Pool } from "./mods";
+import { dotenv, Application, bodyParser, Knex } from "./mods";
 
 import { applyGraphQL } from "./graphql";
 import { applyAuth } from "./auth";
@@ -15,20 +15,34 @@ declare module "koa" {
 
 export const config = dotenv().parsed ?? {};
 
-export const pool = new Pool({
-  host: config["DB_HOST"],
-  database: config["DB_NAME"],
-  user: config["DB_USER"],
-  password: config["DB_PASSWORD"],
-  port: parseInt(config["DB_PORT"]),
-  max: 10,
-});
+const queries: { [key: string]: number } = {};
+export const knex = Knex({
+  client: "pg",
+  connection: {
+    host: config["DB_HOST"],
+    database: config["DB_NAME"],
+    user: config["DB_USER"],
+    password: config["DB_PASSWORD"],
+    port: parseInt(config["DB_PORT"]),
+  },
+})
+  .on("query", ({ __knexQueryUid }) => {
+    queries[__knexQueryUid] = Date.now();
+  })
+  .on("query-response", (_, { __knexQueryUid, sql }, __, ___) => {
+    const start = queries[__knexQueryUid];
+    console.log(
+      "\x1b[31mquery\x1b[0m %s \x1b[31m+%dms\x1b[0m",
+      sql,
+      Date.now() - start
+    );
+    delete queries[__knexQueryUid];
+  });
 
 async function main() {
   console.log("Connecting to DB...");
   try {
-    const client = await pool.connect();
-    await client.release();
+    await knex.raw("SELECT 1;");
   } catch (error) {
     console.log(`Failed to connect to database: ${error.message}`);
     process.exit(1);
