@@ -1,4 +1,4 @@
-import { DataLoader, Context, Type, qb, genUUID } from "./index";
+import { DataLoader, Context, Type, knex, genUUID } from "./index";
 import { mapObjectsByProp, aggObjectsByProp } from "../utils";
 
 export interface PostEditChange {
@@ -37,7 +37,7 @@ export interface PostEditModel {
 
 const cols = ["id", "post_id", "date", "changes"];
 const post_edits = () =>
-  qb<PostEdit>("post_edits").select<PostEdit[]>(cols).orderBy("date", "desc");
+  knex<PostEdit>("post_edits").select<PostEdit[]>(cols).orderBy("date", "desc");
 
 export const genPostEditModel = (ctx: Context): PostEditModel => {
   const postEditByIDLoader = new DataLoader<string, PostEdit>(async (keys) => {
@@ -74,7 +74,7 @@ export const genPostEditModel = (ctx: Context): PostEditModel => {
     },
 
     async create(input: PostEditCreateInput): Promise<PostEdit> {
-      const [result] = await qb("post_edits").insert(
+      const [result] = await knex("post_edits").insert(
         {
           ...input,
           id: await genUUID(Type.PostEdit),

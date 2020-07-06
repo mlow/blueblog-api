@@ -1,5 +1,5 @@
 import { diffWords } from "../mods";
-import { DataLoader, Context, Type, qb, genUUID } from "./index";
+import { DataLoader, Context, Type, knex, genUUID } from "./index";
 import { mapObjectsByProp, aggObjectsByProp } from "../utils";
 
 interface PostCreateUpdateInput {
@@ -36,8 +36,8 @@ const cols = [
   "publish_date",
 ];
 const posts = () =>
-  qb<Post>("posts").select<Post[]>(cols).orderBy("publish_date", "desc");
-const post = () => qb<Post>("posts").first<Post>(cols);
+  knex<Post>("posts").select<Post[]>(cols).orderBy("publish_date", "desc");
+const post = () => knex<Post>("posts").first<Post>(cols);
 
 export const genPostModel = ({ auth, model }: Context): PostModel => {
   const postByIDLoader = new DataLoader<string, Post>(async (keys) => {
@@ -85,7 +85,7 @@ export const genPostModel = ({ auth, model }: Context): PostModel => {
       if (!auth.loggedIn) {
         throw new Error("Must be authenticated.");
       }
-      const [post] = await qb<Post>("posts").insert(
+      const [post] = await knex<Post>("posts").insert(
         {
           id: await genUUID(Type.Post),
           author_id: auth.id,
@@ -127,7 +127,7 @@ export const genPostModel = ({ auth, model }: Context): PostModel => {
       post.is_published = input.is_published ?? post.is_published;
       post.publish_date = input.publish_date ?? post.publish_date;
 
-      [post] = await qb<Post>("posts").where("id", post.id).update(post, "*");
+      [post] = await knex<Post>("posts").where("id", post.id).update(post, "*");
       return post;
     },
 
@@ -143,7 +143,7 @@ export const genPostModel = ({ auth, model }: Context): PostModel => {
         throw new Error("You cannot delete another author's post.");
       }
 
-      await qb<Post>("posts").where("id", post.id).delete();
+      await knex<Post>("posts").where("id", post.id).delete();
 
       return post.id;
     },

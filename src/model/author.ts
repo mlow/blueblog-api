@@ -1,5 +1,5 @@
 import { hash, verify } from "../mods";
-import { DataLoader, Context, Type, qb, genUUID } from "./index";
+import { DataLoader, Context, Type, knex, genUUID } from "./index";
 import { mapObjectsByProp } from "../utils";
 
 export interface Author {
@@ -19,8 +19,8 @@ export interface AuthorModel {
 }
 
 const cols = ["id", "name", "username", "password_hash"];
-const authors = () => qb<Author>("authors").select<Author[]>(cols);
-const author = () => qb<Author>("authors").first<Author>(cols);
+const authors = () => knex<Author>("authors").select<Author[]>(cols);
+const author = () => knex<Author>("authors").first<Author>(cols);
 
 export const genAuthorModel = ({ auth }: Context): AuthorModel => {
   const authorByIDLoader = new DataLoader<string, Author>(async (keys) => {
@@ -57,7 +57,7 @@ export const genAuthorModel = ({ auth }: Context): AuthorModel => {
     },
 
     byUsername(username: string): Promise<Author> {
-      return author().where(qb.raw('LOWER("username") = ?', username));
+      return author().where(knex.raw('LOWER("username") = ?', username));
     },
 
     async create({ name, username, password }: any): Promise<Author> {
@@ -66,7 +66,7 @@ export const genAuthorModel = ({ auth }: Context): AuthorModel => {
         throw new Error("That username is already taken.");
       }
 
-      [author] = await qb<Author>("authors").insert(
+      [author] = await knex<Author>("authors").insert(
         {
           id: await genUUID(Type.Author),
           name,
@@ -98,7 +98,7 @@ export const genAuthorModel = ({ auth }: Context): AuthorModel => {
       author.name = name ?? author.name;
       author.username = username ?? author.username;
 
-      [author] = await qb<Author>("authors")
+      [author] = await knex<Author>("authors")
         .where("id", author.id)
         .update(author, "*");
 
