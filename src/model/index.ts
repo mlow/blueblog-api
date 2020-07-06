@@ -56,7 +56,7 @@ export async function getTypeByUUID(uuid: string) {
     .first("t.type")
     .join("types as t", "t.id", "uuids.type_id")
     .where("uuid", uuid);
-  return result.type;
+  return result?.type;
 }
 
 export async function genUUID(type: Type): Promise<string> {
