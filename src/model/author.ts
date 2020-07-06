@@ -18,18 +18,19 @@ export interface AuthorModel {
   update: ({ name, username, password, new_password }: any) => Promise<Author>;
 }
 
+const cols = ["id", "name", "username", "password_hash"];
+const authors = () => qb<Author>("authors").select<Author[]>(cols);
+const author = () => qb<Author>("authors").first<Author>(cols);
+
 export const genAuthorModel = ({ auth }: Context): AuthorModel => {
   const authorByIDLoader = new DataLoader<string, Author>(async (keys) => {
-    const mapping = mapObjectsByProp(
-      await qb<Author>("authors").whereIn("id", keys),
-      "id"
-    );
+    const mapping = mapObjectsByProp(await authors().whereIn("id", keys), "id");
     return keys.map((id) => mapping[id]);
   }, {});
 
   const authorByNameLoader = new DataLoader<string, Author>(async (keys) => {
     const mapping = mapObjectsByProp(
-      await qb<Author>("authors").whereIn("name", keys),
+      await authors().whereIn("name", keys),
       "name"
     );
     return keys.map((id) => mapping[id]);
@@ -44,7 +45,7 @@ export const genAuthorModel = ({ auth }: Context): AuthorModel => {
 
   return {
     async all(): Promise<Author[]> {
-      return primeLoaders(await qb<Author>("authors"));
+      return primeLoaders(await authors());
     },
 
     byID(id: string): Promise<Author> {
@@ -55,8 +56,8 @@ export const genAuthorModel = ({ auth }: Context): AuthorModel => {
       return authorByNameLoader.load(name);
     },
 
-    async byUsername(username: string): Promise<Author> {
-      return (await qb<Author>("authors").where("username", username))[0];
+    byUsername(username: string): Promise<Author> {
+      return author().where(qb.raw('LOWER("username") = ?', username));
     },
 
     async create({ name, username, password }: any): Promise<Author> {

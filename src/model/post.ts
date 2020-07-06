@@ -27,20 +27,27 @@ export interface PostModel {
   delete: (post_id: string) => Promise<string>;
 }
 
+const cols = [
+  "id",
+  "author_id",
+  "title",
+  "content",
+  "is_published",
+  "publish_date",
+];
+const posts = () =>
+  qb<Post>("posts").select<Post[]>(cols).orderBy("publish_date", "desc");
+const post = () => qb<Post>("posts").first<Post>(cols);
+
 export const genPostModel = ({ auth, model }: Context): PostModel => {
   const postByIDLoader = new DataLoader<string, Post>(async (keys) => {
-    const mapping = mapObjectsByProp(
-      await qb<Post>("posts").whereIn("id", keys).orderBy("publish_date"),
-      "id"
-    );
+    const mapping = mapObjectsByProp(await posts().whereIn("id", keys), "id");
     return keys.map((key) => mapping[key]);
   });
 
   const postsByAuthorLoader = new DataLoader<string, Post[]>(async (keys) => {
     const mapping = aggObjectsByProp(
-      await qb<Post>("posts")
-        .whereIn("author_id", keys)
-        .orderBy("publish_date", "desc"),
+      await posts().whereIn("author_id", keys),
       "author_id",
       (post) => {
         postByIDLoader.prime(post.id, post);
@@ -63,9 +70,7 @@ export const genPostModel = ({ auth, model }: Context): PostModel => {
 
   return {
     async all(): Promise<Post[]> {
-      return primeLoaders(
-        await qb<Post>("posts").orderBy("publish_date", "desc")
-      );
+      return primeLoaders(await posts());
     },
 
     allByAuthor(author_id: string): Promise<Post[]> {

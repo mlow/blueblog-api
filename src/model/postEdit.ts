@@ -35,12 +35,14 @@ export interface PostEditModel {
   create: (input: PostEditCreateInput) => Promise<PostEdit>;
 }
 
+const cols = ["id", "post_id", "date", "changes"];
+const post_edits = () =>
+  qb<PostEdit>("post_edits").select<PostEdit[]>(cols).orderBy("date", "desc");
+
 export const genPostEditModel = (ctx: Context): PostEditModel => {
   const postEditByIDLoader = new DataLoader<string, PostEdit>(async (keys) => {
     const mapping = mapObjectsByProp(
-      await qb<PostEdit>("post_edits")
-        .whereIn("id", keys)
-        .orderBy("date", "desc"),
+      await post_edits().whereIn("id", keys),
       "id",
       (edit) => fromRawData(edit)
     );
@@ -50,9 +52,7 @@ export const genPostEditModel = (ctx: Context): PostEditModel => {
   const postEditsByPostLoader = new DataLoader<string, PostEdit[]>(
     async (keys) => {
       const mapping = aggObjectsByProp(
-        await qb<PostEdit>("post_edits")
-          .whereIn("post_id", keys)
-          .orderBy("date", "desc"),
+        await post_edits().whereIn("post_id", keys),
         "post_id",
         (edit) => {
           edit = fromRawData(edit);
