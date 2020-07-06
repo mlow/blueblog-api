@@ -4,7 +4,7 @@ import { config } from "./main";
 type Authentication = { loggedIn: true; id: string } | { loggedIn: false };
 
 declare module "koa" {
-  interface ExtendableContext {
+  interface BaseContext {
     auth: Authentication;
   }
 }

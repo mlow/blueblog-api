@@ -7,7 +7,7 @@ import { typeDefs, resolvers } from "./graphql/index";
 import { genModel, Models } from "./model/index";
 
 declare module "koa" {
-  interface DefaultContext {
+  interface BaseContext {
     // any per-request state
     model: Models;
   }
@@ -58,12 +58,6 @@ async function main() {
   applyAuth(app);
 
   app.use(async (ctx, next) => {
-    ctx.rstate = {};
-    ctx.model = genModel(ctx);
-    await next();
-  });
-
-  app.use(async (ctx, next) => {
     const start = Date.now();
     await next();
     console.log(
@@ -78,13 +72,16 @@ async function main() {
     app,
     typeDefs: typeDefs,
     resolvers: resolvers,
+    context: (ctx) => {
+      ctx.model = genModel(ctx);
+      return ctx;
+    },
   });
 
+  app.listen({ port: parseInt(config["LISTEN_PORT"]) });
   console.log(
     `Server listening at http://localhost:${config["LISTEN_PORT"]}\n---`
   );
-
-  app.listen({ port: parseInt(config["LISTEN_PORT"]) });
 }
 
 main();
