@@ -31,14 +31,14 @@ CREATE TABLE IF NOT EXISTS posts (
     title text NOT NULL,
     content text NOT NULL,
     is_published boolean NOT NULL,
-    publish_date timestamp NOT NULL DEFAULT current_timestamp,
+    publish_date timestamp NOT NULL DEFAULT DATE_TRUNC('milliseconds', CLOCK_TIMESTAMP()),
     PRIMARY KEY (id)
 );
 
 CREATE TABLE IF NOT EXISTS post_edits (
     id uuid NOT NULL REFERENCES uuids (uuid) ON DELETE CASCADE,
     post_id uuid NOT NULL REFERENCES posts (id) ON DELETE CASCADE,
-    date timestamp NOT NULL DEFAULT current_timestamp,
+    date timestamp NOT NULL DEFAULT DATE_TRUNC('milliseconds', CLOCK_TIMESTAMP()),
     changes text NOT NULL,
     PRIMARY KEY (id)
 );
@@ -46,7 +46,7 @@ CREATE TABLE IF NOT EXISTS post_edits (
 CREATE TABLE IF NOT EXISTS comments (
     id uuid NOT NULL REFERENCES uuids (uuid) ON DELETE CASCADE,
     post_id uuid NOT NULL REFERENCES posts (id) ON DELETE CASCADE,
-    date timestamp NOT NULL DEFAULT current_timestamp,
+    date timestamp NOT NULL DEFAULT DATE_TRUNC('milliseconds', CLOCK_TIMESTAMP()),
     comment text NOT NULL,
     author text,
     author_email text,
