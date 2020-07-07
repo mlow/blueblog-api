@@ -1,5 +1,7 @@
 import { mergeTypeDefs, mergeResolvers } from "../mods";
 
+import { typeDefs as paginationTypes } from "./pagination";
+
 import {
   typeDefs as scalarTypes,
   resolvers as scalarResolvers,
@@ -25,6 +27,7 @@ import {
 } from "./postEdit";
 
 export const typeDefs = mergeTypeDefs([
+  paginationTypes,
   scalarTypes,
   nodeTypes,
   authTypes,

@@ -1,5 +1,13 @@
 import { diffWords } from "../mods";
-import { DataLoader, Context, Type, knex, genUUID } from "./index";
+import {
+  DataLoader,
+  Context,
+  Type,
+  knex,
+  genUUID,
+  genConnection,
+} from "./index";
+import { PagerArgs } from "../graphql/pagination";
 import { mapObjectsByProp, aggObjectsByProp } from "../utils";
 
 interface PostCreateUpdateInput {
@@ -20,6 +28,7 @@ export interface Post {
 
 export interface PostModel {
   all: () => Promise<Post[]>;
+  connection: (args: PagerArgs) => any;
   allByAuthor: (author_id: string) => Promise<Post[]>;
   byID: (id: string) => Promise<Post>;
   create: (input: PostCreateUpdateInput) => Promise<Post>;
@@ -71,6 +80,18 @@ export const genPostModel = ({ auth, model }: Context): PostModel => {
   return {
     async all(): Promise<Post[]> {
       return primeLoaders(await posts());
+    },
+
+    connection(args: PagerArgs) {
+      return genConnection<Post>(
+        args,
+        "posts",
+        "publish_date",
+        "desc",
+        (arg: Date) => Buffer.from(arg.getTime() + "").toString("base64"),
+        (arg: string) =>
+          new Date(parseInt(Buffer.from(arg, "base64").toString("ascii")))
+      );
     },
 
     allByAuthor(author_id: string): Promise<Post[]> {

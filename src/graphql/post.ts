@@ -1,4 +1,5 @@
 import { gql } from "../mods";
+import { PagerInput, buildPagerArgs } from "./pagination";
 import { Context, Post } from "../model/index";
 
 export const typeDefs = gql`
@@ -27,6 +28,17 @@ export const typeDefs = gql`
     edits: [PostEdit!]!
   }
 
+  type PostEdge {
+    node: Post!
+    cursor: String!
+  }
+
+  type PostConnection {
+    total: Int!
+    edges: [PostEdge]
+    pageInfo: PageInfo!
+  }
+
   input CreatePostInput {
     title: String!
     content: String!
@@ -43,7 +55,7 @@ export const typeDefs = gql`
 
   type Query {
     post(id: ID!): Post
-    posts: [Post!]!
+    posts(pager: Pager): PostConnection!
   }
 
   type Mutation {
@@ -66,8 +78,8 @@ export const resolvers = {
     post: (obj: any, { id }: any, { model }: Context) => {
       return model.Post.byID(id);
     },
-    posts: (obj: any, args: any, { model }: Context) => {
-      return model.Post.all();
+    posts: (obj: any, { pager }: { pager: PagerInput }, { model }: Context) => {
+      return model.Post.connection(buildPagerArgs(pager));
     },
   },
   Mutation: {
