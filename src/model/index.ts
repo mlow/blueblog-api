@@ -94,10 +94,9 @@ export async function genConnection<T>(
 
   const result = await query;
   const length = result.length;
-  const returnLength = args.limit ? Math.min(args.limit, length) : length;
-
-  // trim extraneous result.
-  result.splice(returnLength, result.length);
+  if (args.limit && length > args.limit) {
+    result.length = args.limit;
+  }
 
   if (args.backward) {
     // since results were sorted backwards in query, make them forward again
@@ -114,7 +113,7 @@ export async function genConnection<T>(
     pageInfo: {
       startCursor: length == 0 ? null : cursorSerialize(result[0][cursor]),
       endCursor:
-        length == 0 ? null : cursorSerialize(result[returnLength - 1][cursor]),
+        length == 0 ? null : cursorSerialize(result[result.length - 1][cursor]),
       hasNextPage: args.forward && args.limit ? length > args.limit : false,
       hasPreviousPage:
         args.backward && args.limit ? length > args.limit : false,
