@@ -1,4 +1,3 @@
-import { diffWords } from "../mods";
 import {
   DataLoader,
   Context,
@@ -9,6 +8,7 @@ import {
 } from "./index";
 import { PagerArgs } from "../graphql/pagination";
 import { mapObjectsByProp, aggObjectsByProp } from "../utils";
+import { insertContentEdit } from "./util";
 
 interface BlogPostCreateUpdateInput {
   title?: string;
@@ -160,21 +160,12 @@ export const genPostModel = ({ auth, model }: Context): BlogPostModel => {
       return await knex.transaction(async (trx) => {
         const contentChanged = input.content && input.content !== post.content;
         if (contentChanged) {
-          const changes = diffWords(
+          await insertContentEdit(
+            trx,
+            model.Edit,
+            post.id,
             post.content,
-            input.content!,
-            undefined
-          ).map(({ value, count, ...rest }: any) => ({
-            text: value,
-            ...rest,
-          }));
-          await model.Edit.create(
-            {
-              content_id: post.id,
-              date: new Date(),
-              changes,
-            },
-            trx
+            input.content!
           );
         }
 

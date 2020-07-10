@@ -1,5 +1,5 @@
 import { gql } from "../mods";
-import { Edit, Context } from "../model/index";
+import { Edit, Type, Context, getTypeByUUID } from "../model/index";
 
 export const typeDefs = gql`
   """
@@ -36,8 +36,15 @@ export const typeDefs = gql`
 
 export const resolvers = {
   Edit: {
-    content: (edit: Edit, args: any, { model }: Context) => {
-      return model.BlogPost.byID(edit.content_id);
+    content: async (edit: Edit, args: any, { model }: Context) => {
+      const type = await getTypeByUUID(edit.content_id);
+      switch (type) {
+        case Type.BlogPost:
+          return model.BlogPost.byID(edit.content_id);
+        case Type.JournalEntry:
+          return model.JournalEntry.byID(edit.content_id);
+      }
+      throw new Error("Unknown content type.");
     },
   },
 };

@@ -27,6 +27,12 @@ import {
   typeDefs as blogPostTypes,
   resolvers as blogPostResolvers,
 } from "./blog_post";
+
+import {
+  typeDefs as journalEntryTypes,
+  resolvers as journalEntryResolvers,
+} from "./journal_entry";
+
 import { typeDefs as editTypes, resolvers as editResolvers } from "./edit";
 
 export const typeDefs = mergeTypeDefs([
@@ -38,6 +44,7 @@ export const typeDefs = mergeTypeDefs([
 
   authorTypes,
   blogPostTypes,
+  journalEntryTypes,
   editTypes,
 ]);
 
@@ -49,5 +56,6 @@ export const resolvers = mergeResolvers([
 
   authorResolvers,
   blogPostResolvers,
+  journalEntryResolvers,
   editResolvers,
 ]);

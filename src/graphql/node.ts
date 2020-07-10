@@ -27,6 +27,9 @@ export const resolvers = {
         case Type.BlogPost:
           obj = await model.BlogPost.byID(id);
           break;
+        case Type.JournalEntry:
+          obj = await model.JournalEntry.byID(id);
+          break;
         case Type.Edit:
           obj = await model.Edit.byID(id);
           break;

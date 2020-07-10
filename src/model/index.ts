@@ -3,14 +3,15 @@ export { Context, DataLoader };
 
 import { knex } from "../main";
 export { knex };
+import { Transaction } from "knex";
 
 import { PagerArgs } from "../graphql/pagination";
 export { PagerArgs };
 
-import { genAuthorModel, AuthorModel } from "./author";
-import { genPostModel, BlogPostModel } from "./blog_post";
-import { genEditModel, EditModel } from "./edit";
-import { Transaction } from "knex";
+import { AuthorModel, genAuthorModel } from "./author";
+import { BlogPostModel, genPostModel } from "./blog_post";
+import { JournalEntryModel, genJournalEntryModel } from "./journal_entry";
+import { EditModel, genEditModel } from "./edit";
 
 export { Author } from "./author";
 export { BlogPost } from "./blog_post";
@@ -19,12 +20,14 @@ export { Edit, EditChange } from "./edit";
 export const enum Type {
   Author = "Author",
   BlogPost = "BlogPost",
+  JournalEntry = "JournalEntry",
   Edit = "Edit",
 }
 
 export interface Models {
   Author: AuthorModel;
   BlogPost: BlogPostModel;
+  JournalEntry: JournalEntryModel;
   Edit: EditModel;
 }
 
@@ -46,6 +49,9 @@ class LazyModels implements Models {
   }
   get BlogPost() {
     return this._getModel(Type.BlogPost, genPostModel);
+  }
+  get JournalEntry() {
+    return this._getModel(Type.JournalEntry, genJournalEntryModel);
   }
   get Edit() {
     return this._getModel(Type.Edit, genEditModel);
