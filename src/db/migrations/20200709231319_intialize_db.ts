@@ -41,21 +41,25 @@ export async function up(knex: Knex): Promise<any> {
       .onDelete("CASCADE");
     table.text("title").notNullable();
     table.text("content").notNullable();
-    table
-      .timestamp("publish_date")
-      .notNullable()
-      .defaultTo(knex.raw("DATE_TRUNC('milliseconds', CLOCK_TIMESTAMP())"));
   });
 
   // CREATE TABLE blog_posts (...);
   await knex.schema.createTable("blog_posts", (table) => {
     table.uuid("id").primary().references("content.id").onDelete("CASCADE");
     table.boolean("is_published").notNullable();
+    table
+      .timestamp("publish_date")
+      .notNullable()
+      .defaultTo(knex.raw("DATE_TRUNC('milliseconds', CLOCK_TIMESTAMP())"));
   });
 
   // CREATE TABLE journal_entires (...);
   await knex.schema.createTable("journal_entries", (table) => {
     table.uuid("id").primary().references("content.id").onDelete("CASCADE");
+    table
+      .timestamp("date")
+      .notNullable()
+      .defaultTo(knex.raw("DATE_TRUNC('milliseconds', CLOCK_TIMESTAMP())"));
   });
 
   // CREATE TABLE edits (...);
