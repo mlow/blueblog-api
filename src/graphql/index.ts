@@ -1,6 +1,10 @@
 import { mergeTypeDefs, mergeResolvers } from "../mods";
 
 import { typeDefs as paginationTypes } from "./pagination";
+import {
+  typeDefs as contentTypes,
+  resolver as contentResolver,
+} from "./content";
 
 import {
   typeDefs as scalarTypes,
@@ -19,30 +23,31 @@ import {
   resolvers as authorResolvers,
 } from "./author";
 
-import { typeDefs as postTypes, resolvers as postResolvers } from "./post";
-
 import {
-  typeDefs as postEditTypes,
-  resolvers as postEditResolvers,
-} from "./postEdit";
+  typeDefs as blogPostTypes,
+  resolvers as blogPostResolvers,
+} from "./blog_post";
+import { typeDefs as editTypes, resolvers as editResolvers } from "./edit";
 
 export const typeDefs = mergeTypeDefs([
   paginationTypes,
   scalarTypes,
   nodeTypes,
   authTypes,
+  contentTypes,
 
   authorTypes,
-  postTypes,
-  postEditTypes,
+  blogPostTypes,
+  editTypes,
 ]);
 
 export const resolvers = mergeResolvers([
   scalarResolvers,
   nodeResolvers,
   authResolvers,
+  contentResolver,
 
   authorResolvers,
-  postResolvers,
-  postEditResolvers,
+  blogPostResolvers,
+  editResolvers,
 ]);

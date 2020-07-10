@@ -13,8 +13,8 @@ export const typeDefs = gql`
     "The author's name."
     name: String!
 
-    "All posts written by this author."
-    posts: [Post!]!
+    "All blog posts written by this author."
+    posts: [BlogPost!]!
   }
 
   input CreateAuthorInput {
@@ -44,7 +44,7 @@ export const typeDefs = gql`
 export const resolvers = {
   Author: {
     posts: (author: Author, args: any, { model }: Context) => {
-      return model.Post.allByAuthor(author.id);
+      return model.BlogPost.allByAuthor(author.id);
     },
   },
   Query: {

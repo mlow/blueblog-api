@@ -24,11 +24,11 @@ export const resolvers = {
         case Type.Author:
           obj = await model.Author.byID(id);
           break;
-        case Type.Post:
-          obj = await model.Post.byID(id);
+        case Type.BlogPost:
+          obj = await model.BlogPost.byID(id);
           break;
-        case Type.PostEdit:
-          obj = await model.PostEdit.byID(id);
+        case Type.Edit:
+          obj = await model.Edit.byID(id);
           break;
         default:
           return null;

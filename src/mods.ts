@@ -11,6 +11,7 @@ export { bodyParser };
 // knex
 import Knex from "knex";
 export { Knex };
+export { QueryBuilder, Transaction } from "knex";
 
 // Postgres
 export { Pool, PoolClient, QueryConfig } from "pg";

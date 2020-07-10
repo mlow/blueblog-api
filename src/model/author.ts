@@ -66,16 +66,18 @@ export const genAuthorModel = ({ auth }: Context): AuthorModel => {
         throw new Error("That username is already taken.");
       }
 
-      [author] = await knex<Author>("authors").insert(
-        {
-          id: await genUUID(Type.Author),
-          name,
-          username,
-          password_hash: await hash(password),
-        },
-        "*"
-      );
-      return author;
+      return knex.transaction(async (tnx) => {
+        [author] = await tnx<Author>("authors").insert(
+          {
+            id: await genUUID(Type.Author, tnx),
+            name,
+            username,
+            password_hash: await hash(password),
+          },
+          "*"
+        );
+        return author;
+      });
     },
 
     async update({

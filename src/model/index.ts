@@ -1,4 +1,4 @@
-import { Context, DataLoader } from "../mods";
+import { Context, DataLoader, QueryBuilder } from "../mods";
 export { Context, DataLoader };
 
 import { knex } from "../main";
@@ -8,24 +8,24 @@ import { PagerArgs } from "../graphql/pagination";
 export { PagerArgs };
 
 import { genAuthorModel, AuthorModel } from "./author";
-import { genPostModel, PostModel } from "./post";
-import { genPostEditModel, PostEditModel } from "./postEdit";
+import { genPostModel, BlogPostModel } from "./blog_post";
+import { genEditModel, EditModel } from "./edit";
+import { Transaction } from "knex";
 
 export { Author } from "./author";
-export { Post } from "./post";
-export { PostEdit, PostEditChange } from "./postEdit";
+export { BlogPost } from "./blog_post";
+export { Edit, EditChange } from "./edit";
 
 export const enum Type {
   Author = "Author",
-  Post = "Post",
-  PostEdit = "PostEdit",
-  PostEditChange = "PostEditChange",
+  BlogPost = "BlogPost",
+  Edit = "Edit",
 }
 
 export interface Models {
   Author: AuthorModel;
-  Post: PostModel;
-  PostEdit: PostEditModel;
+  BlogPost: BlogPostModel;
+  Edit: EditModel;
 }
 
 class LazyModels implements Models {
@@ -44,15 +44,25 @@ class LazyModels implements Models {
   get Author() {
     return this._getModel(Type.Author, genAuthorModel);
   }
-  get Post() {
-    return this._getModel(Type.Post, genPostModel);
+  get BlogPost() {
+    return this._getModel(Type.BlogPost, genPostModel);
   }
-  get PostEdit() {
-    return this._getModel(Type.PostEdit, genPostEditModel);
+  get Edit() {
+    return this._getModel(Type.Edit, genEditModel);
   }
 }
 
 export const genModel = (ctx: Context): Models => new LazyModels(ctx);
+
+interface CursorSerializer {
+  serialize: (arg: any) => string;
+  deserialize: (arg: string) => any;
+}
+
+const passThroughSerializer: CursorSerializer = {
+  serialize: (arg: any) => arg,
+  deserialize: (arg: string) => arg,
+};
 
 type ValOrFunc<T> = T | (() => Promise<T> | T);
 interface Connection<T> {
@@ -66,33 +76,32 @@ interface Connection<T> {
   }>;
 }
 
-export async function genConnection<T>(
+export async function genConnection(
   args: PagerArgs,
-  table: string,
-  cursor: string,
+  query: QueryBuilder,
+  cursorColumn: string,
   sort: "asc" | "desc" = "asc",
-  cursorSerialize: (arg: any) => string = (arg) => arg,
-  cursorDeserialize: (arg: string) => any = (arg) => arg
-): Promise<Connection<T>> {
+  { serialize, deserialize }: CursorSerializer = passThroughSerializer
+): Promise<Connection<any>> {
   const ascending = sort === "asc";
   const afterComp = ascending ? ">" : "<";
   const beforeCmop = ascending ? "<" : ">";
   const forwardSort = ascending ? "asc" : "desc";
   const backwardSort = ascending ? "desc" : "asc";
 
-  const query = knex(table);
+  const builder = query.clone();
   if (args.after) {
-    query.where(cursor, afterComp, cursorDeserialize(args.after));
+    builder.where(cursorColumn, afterComp, deserialize(args.after));
   }
   if (args.before) {
-    query.where(cursor, beforeCmop, cursorDeserialize(args.before));
+    builder.where(cursorColumn, beforeCmop, deserialize(args.before));
   }
   if (args.limit) {
-    query.limit(args.limit + 1);
+    builder.limit(args.limit + 1);
   }
-  query.orderBy(cursor, args.forward ? forwardSort : backwardSort);
+  builder.orderBy(cursorColumn, args.forward ? forwardSort : backwardSort);
 
-  const result = await query;
+  const result = await builder;
   const length = result.length;
   if (args.limit && length > args.limit) {
     result.length = args.limit;
@@ -105,15 +114,24 @@ export async function genConnection<T>(
 
   return {
     total: async () => {
-      const result = await knex(table).count("* as cnt");
-      return result[0].cnt as number;
+      if (!(args.before || args.after || args.limit)) {
+        return length;
+      }
+      // if any filtering was done in the query, we have to execute it again
+      // in order to get the count if there was no filtering, making this
+      // a rather expensive field.
+      const [result] = await knex.from(query.as("_")).count({ cnt: "*" });
+      return result.cnt;
     },
-    edges: (): { node: T; cursor: string }[] =>
-      result.map((node) => ({ node, cursor: cursorSerialize(node[cursor]) })),
+    edges: (): { node: any; cursor: string }[] =>
+      result.map((node: any) => ({
+        node,
+        cursor: serialize(node[cursorColumn]),
+      })),
     pageInfo: {
-      startCursor: length == 0 ? null : cursorSerialize(result[0][cursor]),
+      startCursor: length == 0 ? null : serialize(result[0][cursorColumn]),
       endCursor:
-        length == 0 ? null : cursorSerialize(result[result.length - 1][cursor]),
+        length == 0 ? null : serialize(result[result.length - 1][cursorColumn]),
       hasNextPage: args.forward && args.limit ? length > args.limit : false,
       hasPreviousPage:
         args.backward && args.limit ? length > args.limit : false,
@@ -129,9 +147,12 @@ export async function getTypeByUUID(uuid: string) {
   return result?.type;
 }
 
-export async function genUUID(type: Type): Promise<string> {
+export async function genUUID(type: Type, trx?: Transaction): Promise<string> {
   const typeSubquery = knex("types").select("id").where("type", type);
-  const result = await knex("uuids").insert({ type_id: typeSubquery }, "uuid");
-  const [uuid] = result;
+  const query = knex("uuids").insert({ type_id: typeSubquery }, "uuid");
+  if (trx) {
+    query.transacting(trx);
+  }
+  const [uuid] = await query;
   return uuid;
 }
