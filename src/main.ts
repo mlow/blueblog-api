@@ -78,10 +78,11 @@ async function main() {
     },
   });
 
-  app.listen({ port: parseInt(config["LISTEN_PORT"]) });
-  console.log(
-    `Server listening at http://localhost:${config["LISTEN_PORT"]}\n---`
-  );
+  app.listen({ port: parseInt(config["LISTEN_PORT"]) }, () => {
+    console.log(
+      `Server listening at http://localhost:${config["LISTEN_PORT"]}\n---`
+    );
+  });
 }
 
 main();
