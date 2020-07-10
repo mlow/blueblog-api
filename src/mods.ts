@@ -15,9 +15,6 @@ export { Knex };
 // Postgres
 export { Pool, PoolClient, QueryConfig } from "pg";
 
-// Dotenv
-export { config as dotenv } from "dotenv";
-
 // argon2
 export { hash, verify } from "argon2";
 

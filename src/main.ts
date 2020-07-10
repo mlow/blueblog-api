@@ -1,4 +1,4 @@
-import { dotenv, Application, bodyParser, Knex } from "./mods";
+import { Application, bodyParser, Knex } from "./mods";
 
 import { applyGraphQL } from "./graphql";
 import { applyAuth } from "./auth";
@@ -13,17 +13,15 @@ declare module "koa" {
   }
 }
 
-export const config = dotenv().parsed ?? {};
-
 const queries: { [key: string]: number } = {};
 export const knex = Knex({
   client: "pg",
   connection: {
-    host: config["DB_HOST"],
-    database: config["DB_NAME"],
-    user: config["DB_USER"],
-    password: config["DB_PASSWORD"],
-    port: parseInt(config["DB_PORT"]),
+    host: process.env.DB_HOST,
+    database: process.env.DB_NAME,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    port: parseInt(process.env.DB_PORT!) || 5432,
   },
 })
   .on("query", ({ __knexQueryUid }) => {
@@ -78,9 +76,9 @@ async function main() {
     },
   });
 
-  app.listen({ port: parseInt(config["LISTEN_PORT"]) }, () => {
+  app.listen({ port: parseInt(process.env.LISTEN_PORT!) || 4000 }, () => {
     console.log(
-      `Server listening at http://localhost:${config["LISTEN_PORT"]}\n---`
+      `Server listening at http://localhost:${process.env.LISTEN_PORT}\n---`
     );
   });
 }

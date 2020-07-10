@@ -1,5 +1,4 @@
 import { Application, Context, validateJwt } from "./mods";
-import { config } from "./main";
 
 type Authentication = { loggedIn: true; id: string } | { loggedIn: false };
 
@@ -39,7 +38,7 @@ async function getAuthentication({
 
   let validatedJwt;
   try {
-    validatedJwt = validateJwt(full_jwt, config["SECRET"]) as any;
+    validatedJwt = validateJwt(full_jwt, process.env.SECRET!) as any;
   } catch {
     throw new Error("Invalid JWT.");
   }

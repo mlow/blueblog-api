@@ -1,6 +1,4 @@
 import { Context, sign as makeJwt } from "./mods";
-
-import { config } from "./main";
 import { Author } from "./model/author";
 
 export function set_jwt_cookies(author: Author, ctx: Context) {
@@ -14,7 +12,7 @@ export function set_jwt_cookies(author: Author, ctx: Context) {
         username: author.username,
       },
     },
-    config["SECRET"],
+    process.env.SECRET!,
     {
       expiresIn: exp / 1000,
     }
