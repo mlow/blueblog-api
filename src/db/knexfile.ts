@@ -1,3 +1,9 @@
+import dotenv from "dotenv";
+
+// knex CLI doesn't seem to respect the --cwd option and will chdir to
+// whever the knexfile is
+dotenv.config({ path: "../../.env" });
+
 module.exports = {
   client: "pg",
   connection: {
@@ -12,6 +18,6 @@ module.exports = {
     max: 10,
   },
   migrations: {
-    tableName: "migrations",
+    tableName: "knex_migrations",
   },
 };
