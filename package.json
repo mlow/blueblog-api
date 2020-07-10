@@ -31,7 +31,7 @@
     "typescript": "^3.9.6"
   },
   "scripts": {
-    "tsc": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json",
     "start": "node -r ts-node/register src/main.ts",
     "watch": "nodemon",
     "knex:migrate:latest": "knex --knexfile src/db/knexfile.ts migrate:latest",
