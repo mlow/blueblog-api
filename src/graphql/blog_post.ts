@@ -1,5 +1,5 @@
 import { gql } from "../mods";
-import { PagerInput, buildPagerArgs } from "./pagination";
+import { buildPagerArgs } from "./pagination";
 import { Context, BlogPost } from "../model/index";
 
 export const typeDefs = gql`

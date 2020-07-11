@@ -1,6 +1,6 @@
 import { gql } from "../mods";
 import { buildPagerArgs } from "./pagination";
-import { Context, BlogPost } from "../model/index";
+import { Context } from "../model/index";
 
 export const typeDefs = gql`
   """
