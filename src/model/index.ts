@@ -12,6 +12,7 @@ import { AuthorModel, genAuthorModel } from "./author";
 import { BlogPostModel, genPostModel } from "./blog_post";
 import { JournalEntryModel, genJournalEntryModel } from "./journal_entry";
 import { EditModel, genEditModel } from "./edit";
+import { DraftModel, getDraftModel } from "./draft";
 
 export { Author } from "./author";
 export { BlogPost } from "./blog_post";
@@ -19,16 +20,18 @@ export { Edit, EditChange } from "./edit";
 
 export const enum Type {
   Author = "Author",
+  Edit = "Edit",
+  Draft = "Draft",
   BlogPost = "BlogPost",
   JournalEntry = "JournalEntry",
-  Edit = "Edit",
 }
 
 export interface Models {
   Author: AuthorModel;
+  Edit: EditModel;
+  Draft: DraftModel;
   BlogPost: BlogPostModel;
   JournalEntry: JournalEntryModel;
-  Edit: EditModel;
 }
 
 class LazyModels implements Models {
@@ -47,14 +50,17 @@ class LazyModels implements Models {
   get Author() {
     return this._getModel(Type.Author, genAuthorModel);
   }
+  get Edit() {
+    return this._getModel(Type.Edit, genEditModel);
+  }
+  get Draft() {
+    return this._getModel(Type.Draft, getDraftModel);
+  }
   get BlogPost() {
     return this._getModel(Type.BlogPost, genPostModel);
   }
   get JournalEntry() {
     return this._getModel(Type.JournalEntry, genJournalEntryModel);
-  }
-  get Edit() {
-    return this._getModel(Type.Edit, genEditModel);
   }
 }
 

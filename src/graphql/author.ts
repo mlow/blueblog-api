@@ -36,8 +36,8 @@ export const typeDefs = gql`
   }
 
   type Mutation {
-    createAuthor(input: CreateAuthorInput!): Author!
-    updateAuthor(input: UpdateAuthorInput!): Author!
+    create_author(input: CreateAuthorInput!): Author!
+    update_author(input: UpdateAuthorInput!): Author!
   }
 `;
 
@@ -56,10 +56,10 @@ export const resolvers = {
     },
   },
   Mutation: {
-    createAuthor: (obj: any, { input }: any, { model }: Context) => {
+    create_author: (obj: any, { input }: any, { model }: Context) => {
       return model.Author.create(input);
     },
-    updateAuthor: async (obj: any, { input }: any, ctx: Context) => {
+    update_author: async (obj: any, { input }: any, ctx: Context) => {
       const author = await ctx.model.Author.update(input);
       set_jwt_cookies(author, ctx);
       return author;

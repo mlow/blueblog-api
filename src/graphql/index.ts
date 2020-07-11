@@ -23,6 +23,9 @@ import {
   resolvers as authorResolvers,
 } from "./author";
 
+import { typeDefs as editTypes, resolvers as editResolvers } from "./edit";
+import { typeDefs as draftTypes, resolvers as draftResolvers } from "./draft";
+
 import {
   typeDefs as blogPostTypes,
   resolvers as blogPostResolvers,
@@ -33,8 +36,6 @@ import {
   resolvers as journalEntryResolvers,
 } from "./journal_entry";
 
-import { typeDefs as editTypes, resolvers as editResolvers } from "./edit";
-
 export const typeDefs = mergeTypeDefs([
   paginationTypes,
   scalarTypes,
@@ -43,9 +44,10 @@ export const typeDefs = mergeTypeDefs([
   contentTypes,
 
   authorTypes,
+  editTypes,
+  draftTypes,
   blogPostTypes,
   journalEntryTypes,
-  editTypes,
 ]);
 
 export const resolvers = mergeResolvers([
@@ -55,7 +57,8 @@ export const resolvers = mergeResolvers([
   contentResolver,
 
   authorResolvers,
+  editResolvers,
+  draftResolvers,
   blogPostResolvers,
   journalEntryResolvers,
-  editResolvers,
 ]);
