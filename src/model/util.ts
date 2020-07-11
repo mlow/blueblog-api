@@ -2,7 +2,7 @@ import { Transaction } from "knex";
 import { EditModel } from "./edit";
 import { diffWords } from "../mods";
 
-export async function insertContentEdit(
+export function insertContentEdit(
   trx: Transaction,
   model: EditModel,
   content_id: string,
