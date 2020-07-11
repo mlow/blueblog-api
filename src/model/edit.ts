@@ -38,7 +38,7 @@ export interface EditModel {
 
 const cols = ["id", "content_id", "date", "changes"];
 const edits = () =>
-  knex<Edit>("edits").select<Edit[]>(cols).orderBy("date", "desc");
+  knex<Edit>("edit").select<Edit[]>(cols).orderBy("date", "desc");
 
 export const genEditModel = (ctx: Context): EditModel => {
   const editByIDLoader = new DataLoader<string, Edit>(async (keys) => {
@@ -73,7 +73,7 @@ export const genEditModel = (ctx: Context): EditModel => {
     },
 
     async create(input: EditCreateInput, trx: Transaction): Promise<Edit> {
-      const [result] = await knex("edits")
+      const [result] = await knex("edit")
         .transacting(trx)
         .insert(
           {

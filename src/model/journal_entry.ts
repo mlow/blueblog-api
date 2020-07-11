@@ -40,7 +40,7 @@ const cols = [
   "content.author_id",
   "content.title",
   "content.content",
-  "journal_entries.date",
+  "journal_entry.date",
 ];
 
 export const genJournalEntryModel = ({
@@ -54,13 +54,13 @@ export const genJournalEntryModel = ({
   }
 
   const journal_entries = () =>
-    knex<JournalEntry>("journal_entries")
-      .innerJoin("content", "journal_entries.id", "content.id")
+    knex<JournalEntry>("journal_entry")
+      .innerJoin("content", "journal_entry.id", "content.id")
       .select<JournalEntry[]>(cols)
       .where("content.author_id", "=", auth.id);
   const byIDLoader = new DataLoader<string, JournalEntry>(async (keys) => {
     const mapping = mapObjectsByProp(
-      await journal_entries().whereIn("journal_entries.id", keys),
+      await journal_entries().whereIn("journal_entry.id", keys),
       "id"
     );
     return keys.map((key) => mapping[key]);
@@ -92,7 +92,7 @@ export const genJournalEntryModel = ({
           },
           ["author_id", "title", "content"]
         );
-        const [entry] = await trx("journal_entries").insert(
+        const [entry] = await trx("journal_entry").insert(
           {
             id: uuid,
             date: input.date ?? new Date(),
@@ -149,7 +149,7 @@ export const genJournalEntryModel = ({
         }
         if (input.date && input.date.getTime() !== entry.date.getTime()) {
           entry.date = input.date;
-          await trx("journal_entries").where("id", entry.id).update({
+          await trx("journal_entry").where("id", entry.id).update({
             date: entry.date,
           });
         }
@@ -167,7 +167,7 @@ export const genJournalEntryModel = ({
       }
 
       // cascading delete
-      await knex("uuids").where("uuid", entry.id).delete();
+      await knex("uuid").where("uuid", entry.id).delete();
 
       return entry.id;
     },

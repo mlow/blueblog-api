@@ -19,8 +19,8 @@ export interface AuthorModel {
 }
 
 const cols = ["id", "name", "username", "password_hash"];
-const authors = () => knex<Author>("authors").select<Author[]>(cols);
-const author = () => knex<Author>("authors").first<Author>(cols);
+const authors = () => knex<Author>("author").select<Author[]>(cols);
+const author = () => knex<Author>("author").first<Author>(cols);
 
 export const genAuthorModel = ({ auth }: Context): AuthorModel => {
   const authorByIDLoader = new DataLoader<string, Author>(async (keys) => {
@@ -67,7 +67,7 @@ export const genAuthorModel = ({ auth }: Context): AuthorModel => {
       }
 
       return knex.transaction(async (tnx) => {
-        [author] = await tnx<Author>("authors").insert(
+        [author] = await tnx<Author>("author").insert(
           {
             id: await genUUID(Type.Author, tnx),
             name,
@@ -100,7 +100,7 @@ export const genAuthorModel = ({ auth }: Context): AuthorModel => {
       author.name = name ?? author.name;
       author.username = username ?? author.username;
 
-      [author] = await knex<Author>("authors")
+      [author] = await knex<Author>("author")
         .where("id", author.id)
         .update(author, "*");
 

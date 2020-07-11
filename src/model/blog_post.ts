@@ -44,19 +44,19 @@ const cols = [
   "content.author_id",
   "content.title",
   "content.content",
-  "blog_posts.is_published",
-  "blog_posts.publish_date",
+  "blog_post.is_published",
+  "blog_post.publish_date",
 ];
 
 const blog_posts = () =>
-  knex<BlogPost>("blog_posts")
-    .innerJoin("content", "blog_posts.id", "content.id")
+  knex<BlogPost>("blog_post")
+    .innerJoin("content", "blog_post.id", "content.id")
     .select<BlogPost[]>(cols);
 
 export const genPostModel = ({ auth, model }: Context): BlogPostModel => {
   const byIDLoader = new DataLoader<string, BlogPost>(async (keys) => {
     const mapping = mapObjectsByProp(
-      await blog_posts().whereIn("blog_posts.id", keys),
+      await blog_posts().whereIn("blog_post.id", keys),
       "id"
     );
     return keys.map((key) => mapping[key]);
@@ -122,7 +122,7 @@ export const genPostModel = ({ auth, model }: Context): BlogPostModel => {
           },
           ["author_id", "title", "content"]
         );
-        const [post] = await trx("blog_posts").insert(
+        const [post] = await trx("blog_post").insert(
           {
             id: uuid,
             is_published: input.is_published ?? false,
@@ -185,7 +185,7 @@ export const genPostModel = ({ auth, model }: Context): BlogPostModel => {
 
         post.is_published = input.is_published ?? post.is_published;
         post.publish_date = input.publish_date ?? post.publish_date;
-        await trx("blog_posts").where("id", post.id).update(
+        await trx("blog_post").where("id", post.id).update(
           {
             is_published: post.is_published,
             publish_date: post.publish_date,
@@ -209,7 +209,7 @@ export const genPostModel = ({ auth, model }: Context): BlogPostModel => {
       }
 
       // cascading delete
-      await knex("uuids").where("id", post.id).delete();
+      await knex("uuid").where("id", post.id).delete();
 
       return post.id;
     },

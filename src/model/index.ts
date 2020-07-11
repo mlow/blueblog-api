@@ -145,17 +145,18 @@ export async function genConnection(
   };
 }
 
+const typeByUUID = new Map<String, String>();
 export async function getTypeByUUID(uuid: string) {
-  const result = await knex("uuids")
-    .first("t.type")
-    .join("types as t", "t.id", "uuids.type_id")
-    .where("uuid", uuid);
-  return result?.type;
+  let type = typeByUUID.get(uuid);
+  if (!type) {
+    const result = await knex("uuid").first("type").where("uuid", uuid);
+    typeByUUID.set(uuid, result?.type);
+  }
+  return type;
 }
 
 export async function genUUID(type: Type, trx?: Transaction): Promise<string> {
-  const typeSubquery = knex("types").select("id").where("type", type);
-  const query = knex("uuids").insert({ type_id: typeSubquery }, "uuid");
+  const query = knex("uuid").insert({ type }, "uuid");
   if (trx) {
     query.transacting(trx);
   }
