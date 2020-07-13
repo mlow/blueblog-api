@@ -33,7 +33,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "start": "node -r dotenv/config -r ts-node/register src/main.ts",
-    "watch": "nodemon",
+    "serve": "nodemon",
     "knex:migrate:latest": "knex --knexfile src/db/knexfile.ts migrate:latest",
     "knex:migrate:up": "knex --knexfile src/db/knexfile.ts migrate:up",
     "knex:migrate:down": "knex --knexfile src/db/knexfile.ts migrate:down"
