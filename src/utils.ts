@@ -1,5 +1,6 @@
 import { Context, sign as makeJwt } from "./mods";
 import { Author } from "./model/author";
+import slug from "slug";
 
 export function set_jwt_cookies(author: Author, ctx: Context) {
   const exp: number = 24 * 60 * 60 * 1000; // 1 day
@@ -60,4 +61,8 @@ export function aggObjectsByProp<T>(
     arr.push(obj);
   });
   return map;
+}
+
+export function sluggify(str: string) {
+  return slug(str);
 }

@@ -1,6 +1,7 @@
 import { gql } from "../mods";
 import { buildPagerArgs } from "./pagination";
 import { Context, BlogPost } from "../model/index";
+import { sluggify } from "../utils";
 
 export const typeDefs = gql`
   """
@@ -23,6 +24,9 @@ export const typeDefs = gql`
 
     "The date the blog post was (or will be) published."
     publish_date: DateTime!
+
+    "A URL safe slug of the title."
+    slug: String!
 
     "All edits that have been made this post from most recent to oldest."
     edits: [Edit!]!
@@ -73,6 +77,7 @@ export const resolvers = {
     edits: (post: BlogPost, args: any, { model }: Context) => {
       return model.Edit.allByContent(post.id);
     },
+    slug: (post: BlogPost) => sluggify(post.title),
   },
   Query: {
     blog_post: (obj: any, { id }: any, { model }: Context) => {
