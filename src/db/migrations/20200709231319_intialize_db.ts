@@ -10,14 +10,15 @@ export async function up(knex: Knex): Promise<any> {
       'JournalEntry'
     );
 
-    CREATE TABLE uuid (
-      uuid uuid NOT NULL DEFAULT uuid_generate_v1mc(),
+    CREATE TABLE ids (
+      id bigserial NOT NULL,
       type type NOT NULL,
-      PRIMARY KEY (uuid)
+      PRIMARY KEY (id)
     );
+    ALTER SEQUENCE ids_id_seq RESTART WITH 1000000;
 
     CREATE TABLE author (
-      id uuid NOT NULL REFERENCES uuid (uuid) ON DELETE CASCADE,
+      id bigint NOT NULL REFERENCES ids (id) ON DELETE CASCADE,
       name text NOT NULL,
       username text UNIQUE NOT NULL,
       password_hash text NOT NULL,
@@ -25,36 +26,36 @@ export async function up(knex: Knex): Promise<any> {
     );
 
     CREATE TABLE content (
-      id uuid NOT NULL references uuid (uuid) ON DELETE CASCADE,
-      author_id uuid NOT NULL REFERENCES author (id) ON DELETE CASCADE,
+      id bigint NOT NULL references ids (id) ON DELETE CASCADE,
+      author_id bigint NOT NULL REFERENCES author (id) ON DELETE CASCADE,
       title text NOT NULL,
       content text NOT NULL,
       PRIMARY KEY (id)
     );
 
     CREATE TABLE blog_post (
-      id uuid NOT NULL REFERENCES content (id) ON DELETE CASCADE,
+      id bigint NOT NULL REFERENCES content (id) ON DELETE CASCADE,
       is_published boolean NOT NULL,
       publish_date timestamp NOT NULL DEFAULT DATE_TRUNC('milliseconds', CLOCK_TIMESTAMP()),
-      PRIMARY KEY (content_id)
+      PRIMARY KEY (id)
     );
 
     CREATE TABLE journal_entry (
-      id uuid NOT NULL REFERENCES content (id) ON DELETE CASCADE,
+      id bigint NOT NULL REFERENCES content (id) ON DELETE CASCADE,
       date timestamp NOT NULL DEFAULT DATE_TRUNC('milliseconds', CLOCK_TIMESTAMP()),
-      PRIMARY KEY (content_id)
+      PRIMARY KEY (id)
     );
 
     CREATE TABLE edit (
-      id uuid NOT NULL REFERENCES uuid (uuid) ON DELETE CASCADE,
-      content_id uuid NOT NULL REFERENCES content (id) ON DELETE CASCADE,
+      id bigint NOT NULL REFERENCES ids (id) ON DELETE CASCADE,
+      content_id bigserial NOT NULL REFERENCES content (id) ON DELETE CASCADE,
       date timestamp NOT NULL DEFAULT DATE_TRUNC('milliseconds', CLOCK_TIMESTAMP()),
       changes text NOT NULL,
       PRIMARY KEY (id)
     );
 
     CREATE TABLE draft (
-      content_id uuid NOT NULL REFERENCES content (id) ON DELETE CASCADE,
+      content_id bigint NOT NULL REFERENCES content (id) ON DELETE CASCADE,
       type type NOT NULL,
       date timestamp NOT NULL DEFAULT DATE_TRUNC('millisconds', CLOCK_TIMESTAMP()),
       PRIMARY KEY (content_id)
@@ -69,6 +70,6 @@ export async function down(knex: Knex): Promise<any> {
   await knex.schema.dropTable("blog_post");
   await knex.schema.dropTable("content");
   await knex.schema.dropTable("author");
-  await knex.schema.dropTable("uuid");
+  await knex.schema.dropTable("ids");
   await knex.schema.raw("DROP TYPE type;");
 }
