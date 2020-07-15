@@ -2,11 +2,12 @@ import {
   DataLoader,
   Context,
   Type,
+  PagerInput,
   knex,
   genConnection,
   generateID,
+  DateCursorSerializer,
 } from "./index";
-import { PagerArgs } from "../graphql/pagination";
 import { mapObjectsByProp, aggObjectsByProp } from "../utils";
 import { insertContentEdit } from "./util";
 
@@ -28,7 +29,7 @@ export interface BlogPost {
 
 export interface BlogPostModel {
   all: () => Promise<BlogPost[]>;
-  connection: (args: PagerArgs) => any;
+  connection: (args: PagerInput) => any;
   allByAuthor: (author_id: number) => Promise<BlogPost[]>;
   byID: (id: number) => Promise<BlogPost>;
   create: (input: BlogPostCreateUpdateInput) => Promise<BlogPost>;
@@ -52,6 +53,9 @@ const blog_posts = () =>
   knex<BlogPost>("blog_post")
     .innerJoin("content", "blog_post.id", "content.id")
     .select<BlogPost[]>(cols);
+
+export const getCursor = (post: BlogPost) =>
+  DateCursorSerializer.serialize(post.publish_date);
 
 export const genPostModel = ({ auth, model }: Context): BlogPostModel => {
   const byIDLoader = new DataLoader<number, BlogPost>(async (keys) => {
@@ -94,13 +98,14 @@ export const genPostModel = ({ auth, model }: Context): BlogPostModel => {
       return primeLoaders(await blog_posts());
     },
 
-    connection(args: PagerArgs) {
-      return genConnection(args, blog_posts(), "publish_date", "desc", {
-        serialize: (arg: Date) =>
-          Buffer.from(arg.getTime() + "").toString("base64"),
-        deserialize: (arg: string) =>
-          new Date(parseInt(Buffer.from(arg, "base64").toString("ascii"))),
-      });
+    connection(args: PagerInput) {
+      return genConnection(
+        args,
+        blog_posts(),
+        "publish_date",
+        "desc",
+        DateCursorSerializer
+      );
     },
 
     allByAuthor(author_id: number): Promise<BlogPost[]> {

@@ -1,5 +1,5 @@
 import { gql } from "../mods";
-import { PagerInput, buildPagerArgs } from "./pagination";
+import { PagerInput, validatePagerInput } from "./pagination";
 import { Context } from "../model/index";
 import { JournalEntry } from "../model/journal_entry";
 
@@ -30,7 +30,8 @@ export const typeDefs = gql`
 
   type JournalEntryConnection {
     total: Int!
-    edges: [JournalEntryEdge]
+    beforeEdges: [JournalEntryEdge!]!
+    afterEdges: [JournalEntryEdge!]!
     pageInfo: PageInfo!
   }
 
@@ -76,7 +77,7 @@ export const resolvers = {
       { pager }: { pager: PagerInput },
       { model }: Context
     ) => {
-      return model.JournalEntry.connection(buildPagerArgs(pager));
+      return model.JournalEntry.connection(validatePagerInput(pager));
     },
   },
   Mutation: {

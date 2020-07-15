@@ -1,6 +1,7 @@
 import { gql } from "../mods";
-import { buildPagerArgs } from "./pagination";
-import { Context, BlogPost } from "../model/index";
+import { validatePagerInput } from "./pagination";
+import { Context } from "../model/index";
+import { getCursor, BlogPost } from "../model/blog_post";
 import { sluggify } from "../utils";
 
 export const typeDefs = gql`
@@ -28,6 +29,9 @@ export const typeDefs = gql`
     "A URL safe slug of the title."
     slug: String!
 
+    "The cursor of this post, used for pagination."
+    cursor: String!
+
     "All edits that have been made this post from most recent to oldest."
     edits: [Edit!]!
   }
@@ -39,7 +43,8 @@ export const typeDefs = gql`
 
   type BlogPostConnection {
     total: Int!
-    edges: [BlogPostEdge]
+    beforeEdges: [BlogPostEdge!]!
+    afterEdges: [BlogPostEdge!]!
     pageInfo: PageInfo!
   }
 
@@ -78,13 +83,14 @@ export const resolvers = {
       return model.Edit.allByContent(post.id);
     },
     slug: (post: BlogPost) => sluggify(post.title),
+    cursor: (post: BlogPost) => getCursor(post),
   },
   Query: {
     blog_post: (obj: any, { id }: any, { model }: Context) => {
       return model.BlogPost.byID(id);
     },
     blog_posts: (obj: any, { pager }: any, { model }: Context) => {
-      return model.BlogPost.connection(buildPagerArgs(pager));
+      return model.BlogPost.connection(validatePagerInput(pager));
     },
   },
   Mutation: {

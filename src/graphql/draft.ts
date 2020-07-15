@@ -1,5 +1,5 @@
 import { gql } from "../mods";
-import { buildPagerArgs } from "./pagination";
+import { validatePagerInput } from "./pagination";
 import { Context } from "../model/index";
 
 export const typeDefs = gql`
@@ -26,7 +26,8 @@ export const typeDefs = gql`
 
   type DraftConnection {
     total: Int!
-    edges: [DraftEdge]
+    beforeEdges: [DraftEdge!]!
+    afterEdges: [DraftEdge!]!
     pageInfo: PageInfo!
   }
 
@@ -61,7 +62,7 @@ export const resolvers = {
       return model.Draft.byID(id);
     },
     drafts: (obj: any, { pager }: any, { model }: Context) => {
-      return model.Draft.connection(buildPagerArgs(pager));
+      return model.Draft.connection(validatePagerInput(pager));
     },
   },
   Mutation: {

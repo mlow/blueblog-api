@@ -7,34 +7,25 @@ export type PagerInput = {
   before?: string;
 };
 
-type DirectionArgs = { forward: boolean; backward: boolean };
-type LimitArgs = { limit?: number; after?: string; before?: string };
-export type PagerArgs = LimitArgs & DirectionArgs;
-
-export function buildPagerArgs({
+export function validatePagerInput({
   first,
   after,
   last,
   before,
-}: PagerInput = {}): PagerArgs {
-  if (!(after || first || before || last)) {
-    return { forward: true, backward: false };
-  }
-  if (first && last) {
-    throw new Error("Cannot supply both first and last pager arguments.");
+}: PagerInput = {}): PagerInput {
+  if (first && last && ((before && !after) || (!before && after))) {
+    throw new Error(
+      "Cannot specify both `first` and `last` with only one of `after` or `before`."
+    );
   }
   if ((first && first < 0) || (last && last < 0)) {
-    throw new Error("Neither first or last argument can be negative.");
+    throw new Error("Neither `first` or `last` can be negative.");
   }
-  const limit = first ?? last ?? undefined;
-  const forward = !last;
-  const backward = !forward;
   return {
-    limit,
+    first,
     after,
+    last,
     before,
-    forward,
-    backward,
   };
 }
 
@@ -42,8 +33,6 @@ export const typeDefs = gql`
   type PageInfo {
     startCursor: String
     endCursor: String
-    page: Int!
-    totalPages: Int!
     hasPreviousPage: Boolean!
     hasNextPage: Boolean!
   }

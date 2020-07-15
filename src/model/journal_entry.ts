@@ -5,8 +5,9 @@ import {
   knex,
   generateID,
   genConnection,
+  DateCursorSerializer,
 } from "./index";
-import { PagerArgs } from "../graphql/pagination";
+import { PagerInput } from "../graphql/pagination";
 import { mapObjectsByProp } from "../utils";
 import { insertContentEdit } from "./util";
 
@@ -25,7 +26,7 @@ export interface JournalEntry {
 }
 
 export interface JournalEntryModel {
-  connection: (args: PagerArgs) => any;
+  connection: (args: PagerInput) => any;
   byID: (id: number) => Promise<JournalEntry>;
   create: (input: JournalEntryCreateUpdateInput) => Promise<JournalEntry>;
   update: (
@@ -67,13 +68,14 @@ export const genJournalEntryModel = ({
   });
 
   return {
-    connection(args: PagerArgs) {
-      return genConnection(args, journal_entries(), "date", "desc", {
-        serialize: (arg: Date) =>
-          Buffer.from(arg.getTime() + "").toString("base64"),
-        deserialize: (arg: string) =>
-          new Date(parseInt(Buffer.from(arg, "base64").toString("ascii"))),
-      });
+    connection(args: PagerInput) {
+      return genConnection(
+        args,
+        journal_entries(),
+        "date",
+        "desc",
+        DateCursorSerializer
+      );
     },
 
     byID(id: number): Promise<JournalEntry> {

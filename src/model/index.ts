@@ -5,8 +5,8 @@ import { knex } from "../main";
 export { knex };
 import { Transaction } from "knex";
 
-import { PagerArgs } from "../graphql/pagination";
-export { PagerArgs };
+import { PagerInput } from "../graphql/pagination";
+export { PagerInput };
 
 import { AuthorModel, genAuthorModel } from "./author";
 import { BlogPostModel, genPostModel } from "./blog_post";
@@ -78,8 +78,8 @@ const passThroughSerializer: CursorSerializer = {
 
 type ValOrFunc<T> = T | (() => Promise<T> | T);
 interface Connection<T> {
-  total: ValOrFunc<number>;
-  edges: ValOrFunc<{ node: T; cursor: string }[]>;
+  beforeEdges: ValOrFunc<{ node: T; cursor: string }[]>;
+  afterEdges: ValOrFunc<{ node: T; cursor: string }[]>;
   pageInfo: ValOrFunc<{
     startCursor: ValOrFunc<string | null>;
     endCursor: ValOrFunc<string | null>;
@@ -88,8 +88,14 @@ interface Connection<T> {
   }>;
 }
 
+export const DateCursorSerializer: CursorSerializer = {
+  serialize: (arg: Date) => Buffer.from(arg.getTime() + "").toString("base64"),
+  deserialize: (arg: string) =>
+    new Date(parseInt(Buffer.from(arg, "base64").toString("ascii"))),
+};
+
 export async function genConnection(
-  args: PagerArgs,
+  input: PagerInput,
   query: QueryBuilder,
   cursorColumn: string,
   sort: "asc" | "desc" = "asc",
@@ -97,56 +103,80 @@ export async function genConnection(
 ): Promise<Connection<any>> {
   const ascending = sort === "asc";
   const afterComp = ascending ? ">" : "<";
-  const beforeCmop = ascending ? "<" : ">";
+  const beforeComp = ascending ? "<" : ">";
   const forwardSort = ascending ? "asc" : "desc";
   const backwardSort = ascending ? "desc" : "asc";
 
-  const builder = query.clone();
-  if (args.after) {
-    builder.where(cursorColumn, afterComp, deserialize(args.after));
-  }
-  if (args.before) {
-    builder.where(cursorColumn, beforeCmop, deserialize(args.before));
-  }
-  if (args.limit) {
-    builder.limit(args.limit + 1);
-  }
-  builder.orderBy(cursorColumn, args.forward ? forwardSort : backwardSort);
+  const edges: { before?: []; after?: [] } = {};
+  let startCursor: string | null = null;
+  let endCursor: string | null = null;
+  let hasPreviousPage = false;
+  let hasNextPage = false;
 
-  const result = await builder;
-  const length = result.length;
-  if (args.limit && length > args.limit) {
-    result.length = args.limit;
+  if (input.first || input.after || (!input.last && !input.before)) {
+    const tmp = query.clone();
+    if (input.after) {
+      tmp.where(cursorColumn, afterComp, deserialize(input.after));
+    }
+    if (input.first) {
+      tmp.limit(input.first + 1);
+    }
+    const result = await tmp.orderBy(cursorColumn, forwardSort);
+    hasNextPage = input.first ? result.length > input.first : false;
+    if (hasNextPage) {
+      result.length = input.first;
+    }
+    if (result.length) {
+      startCursor = serialize(result[0][cursorColumn]);
+      endCursor = serialize(result[result.length - 1][cursorColumn]);
+    }
+    edges.after = result;
   }
-
-  if (args.backward) {
-    // since results were sorted backwards in query, make them forward again
-    result.reverse();
+  if (input.last || input.before) {
+    const tmp = query.clone();
+    if (input.before) {
+      tmp.where(cursorColumn, beforeComp, deserialize(input.before));
+    }
+    if (input.last) {
+      tmp.limit(input.last + 1);
+    }
+    const result = await tmp.orderBy(cursorColumn, backwardSort);
+    hasPreviousPage = input.last ? result.length > input.last : false;
+    if (hasPreviousPage) {
+      result.length = input.last;
+    }
+    if (result.length) {
+      result.reverse();
+      startCursor = serialize(result[0][cursorColumn]);
+      // If the end cursor was already set in the after/last stage, don't
+      // change it
+      endCursor = endCursor
+        ? endCursor
+        : serialize(result[result.length - 1][cursorColumn]);
+    }
+    edges.before = result;
   }
 
   return {
-    total: async () => {
-      if (!(args.before || args.after || args.limit)) {
-        return length;
-      }
-      // if any filtering was done in the query, we have to execute it again
-      // in order to get the count if there was no filtering, making this
-      // a rather expensive field.
-      const [result] = await knex.from(query.as("_")).count({ cnt: "*" });
-      return result.cnt;
-    },
-    edges: (): { node: any; cursor: string }[] =>
-      result.map((node: any) => ({
-        node,
-        cursor: serialize(node[cursorColumn]),
-      })),
+    beforeEdges: (): { node: any; cursor: string }[] =>
+      edges.before
+        ? edges.before.map((node: any) => ({
+            node,
+            cursor: serialize(node[cursorColumn]),
+          }))
+        : [],
+    afterEdges: (): { node: any; cursor: string }[] =>
+      edges.after
+        ? edges.after.map((node: any) => ({
+            node,
+            cursor: serialize(node[cursorColumn]),
+          }))
+        : [],
     pageInfo: {
-      startCursor: length == 0 ? null : serialize(result[0][cursorColumn]),
-      endCursor:
-        length == 0 ? null : serialize(result[result.length - 1][cursorColumn]),
-      hasNextPage: args.forward && args.limit ? length > args.limit : false,
-      hasPreviousPage:
-        args.backward && args.limit ? length > args.limit : false,
+      startCursor,
+      endCursor,
+      hasNextPage,
+      hasPreviousPage,
     },
   };
 }

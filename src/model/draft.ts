@@ -5,8 +5,9 @@ import {
   knex,
   generateID,
   genConnection,
+  DateCursorSerializer,
 } from "./index";
-import { PagerArgs } from "../graphql/pagination";
+import { PagerInput } from "../graphql/pagination";
 import { mapObjectsByProp } from "../utils";
 
 interface DraftCreateUpdateInput {
@@ -24,7 +25,7 @@ export interface Draft {
 }
 
 export interface DraftModel {
-  connection: (args: PagerArgs) => any;
+  connection: (args: PagerInput) => any;
   byID: (id: number) => Promise<Draft>;
   create: (input: DraftCreateUpdateInput) => Promise<Draft>;
   update: (post_id: number, input: DraftCreateUpdateInput) => Promise<Draft>;
@@ -58,13 +59,14 @@ export const getDraftModel = ({ auth, model }: Context): DraftModel => {
   });
 
   return {
-    connection(args: PagerArgs) {
-      return genConnection(args, drafts(), "date", "desc", {
-        serialize: (arg: Date) =>
-          Buffer.from(arg.getTime() + "").toString("base64"),
-        deserialize: (arg: string) =>
-          new Date(parseInt(Buffer.from(arg, "base64").toString("ascii"))),
-      });
+    connection(args: PagerInput) {
+      return genConnection(
+        args,
+        drafts(),
+        "date",
+        "desc",
+        DateCursorSerializer
+      );
     },
 
     byID(id: number): Promise<Draft> {
