@@ -3,7 +3,7 @@ import {
   Context,
   Type,
   knex,
-  genUUID,
+  generateID,
   genConnection,
 } from "./index";
 import { PagerArgs } from "../graphql/pagination";
@@ -16,8 +16,8 @@ interface DraftCreateUpdateInput {
 }
 
 export interface Draft {
-  id: string;
-  author_id: string;
+  id: number;
+  author_id: number;
   title: string;
   content: string;
   date: Date;
@@ -25,10 +25,10 @@ export interface Draft {
 
 export interface DraftModel {
   connection: (args: PagerArgs) => any;
-  byID: (id: string) => Promise<Draft>;
+  byID: (id: number) => Promise<Draft>;
   create: (input: DraftCreateUpdateInput) => Promise<Draft>;
-  update: (post_id: string, input: DraftCreateUpdateInput) => Promise<Draft>;
-  delete: (post_id: string) => Promise<string>;
+  update: (post_id: number, input: DraftCreateUpdateInput) => Promise<Draft>;
+  delete: (post_id: number) => Promise<number>;
 }
 
 const cols = [
@@ -49,7 +49,7 @@ export const getDraftModel = ({ auth, model }: Context): DraftModel => {
       .innerJoin("content", "draft.id", "content.id")
       .select<Draft[]>(cols)
       .where("content.author_id", "=", auth.id);
-  const byIDLoader = new DataLoader<string, Draft>(async (keys) => {
+  const byIDLoader = new DataLoader<number, Draft>(async (keys) => {
     const mapping = mapObjectsByProp(
       await drafts().whereIn("draft.id", keys),
       "id"
@@ -67,16 +67,16 @@ export const getDraftModel = ({ auth, model }: Context): DraftModel => {
       });
     },
 
-    byID(id: string): Promise<Draft> {
+    byID(id: number): Promise<Draft> {
       return byIDLoader.load(id);
     },
 
     async create(input: DraftCreateUpdateInput): Promise<Draft> {
       return await knex.transaction(async (trx) => {
-        const uuid = await genUUID(Type.JournalEntry, trx);
+        const id = await generateID(Type.JournalEntry, trx);
         const [content] = await trx("content").insert(
           {
-            id: uuid,
+            id: id,
             author_id: auth.id,
             title: input.title,
             content: input.content,
@@ -85,14 +85,14 @@ export const getDraftModel = ({ auth, model }: Context): DraftModel => {
         );
         const [draft] = await trx("draft").insert(
           {
-            id: uuid,
+            id: id,
             date: input.date ?? new Date(),
           },
           ["date"]
         );
 
         return {
-          id: uuid,
+          id: id,
           author_id: content.author_id,
           title: content.title,
           content: content.content,
@@ -102,7 +102,7 @@ export const getDraftModel = ({ auth, model }: Context): DraftModel => {
     },
 
     async update(
-      entry_id: string,
+      entry_id: number,
       input: DraftCreateUpdateInput
     ): Promise<Draft> {
       const draft = await this.byID(entry_id);
@@ -140,7 +140,7 @@ export const getDraftModel = ({ auth, model }: Context): DraftModel => {
       });
     },
 
-    async delete(entry_id: string): Promise<string> {
+    async delete(entry_id: number): Promise<number> {
       const draft = await this.byID(entry_id);
       if (!draft) {
         throw new Error("No entry with that ID found.");
@@ -150,7 +150,7 @@ export const getDraftModel = ({ auth, model }: Context): DraftModel => {
       }
 
       // cascading delete
-      await knex("uuid").where("uuid", draft.id).delete();
+      await knex("ids").where("id", draft.id).delete();
 
       return draft.id;
     },

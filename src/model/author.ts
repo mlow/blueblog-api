@@ -1,9 +1,9 @@
 import { hash, verify } from "../mods";
-import { DataLoader, Context, Type, knex, genUUID } from "./index";
+import { DataLoader, Context, Type, knex, generateID } from "./index";
 import { mapObjectsByProp } from "../utils";
 
 export interface Author {
-  id: string;
+  id: number;
   name: string;
   username: string;
   password_hash: string;
@@ -11,7 +11,7 @@ export interface Author {
 
 export interface AuthorModel {
   all: () => Promise<Author[]>;
-  byID: (id: string) => Promise<Author>;
+  byID: (id: number) => Promise<Author>;
   byName: (name: string) => Promise<Author>;
   byUsername: (username: string) => Promise<Author>;
   create: ({ name, username, password }: any) => Promise<Author>;
@@ -23,7 +23,7 @@ const authors = () => knex<Author>("author").select<Author[]>(cols);
 const author = () => knex<Author>("author").first<Author>(cols);
 
 export const genAuthorModel = ({ auth }: Context): AuthorModel => {
-  const authorByIDLoader = new DataLoader<string, Author>(async (keys) => {
+  const authorByIDLoader = new DataLoader<number, Author>(async (keys) => {
     const mapping = mapObjectsByProp(await authors().whereIn("id", keys), "id");
     return keys.map((id) => mapping[id]);
   }, {});
@@ -48,7 +48,7 @@ export const genAuthorModel = ({ auth }: Context): AuthorModel => {
       return primeLoaders(await authors());
     },
 
-    byID(id: string): Promise<Author> {
+    byID(id: number): Promise<Author> {
       return authorByIDLoader.load(id);
     },
 
@@ -69,7 +69,7 @@ export const genAuthorModel = ({ auth }: Context): AuthorModel => {
       return knex.transaction(async (tnx) => {
         [author] = await tnx<Author>("author").insert(
           {
-            id: await genUUID(Type.Author, tnx),
+            id: await generateID(Type.Author, tnx),
             name,
             username,
             password_hash: await hash(password),

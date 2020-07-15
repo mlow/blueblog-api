@@ -5,7 +5,7 @@ import { diffWords } from "../mods";
 export function insertContentEdit(
   trx: Transaction,
   model: EditModel,
-  content_id: string,
+  content_id: number,
   old_content: string,
   new_content: string
 ) {

@@ -3,8 +3,8 @@ import {
   Context,
   Type,
   knex,
-  genUUID,
   genConnection,
+  generateID,
 } from "./index";
 import { PagerArgs } from "../graphql/pagination";
 import { mapObjectsByProp, aggObjectsByProp } from "../utils";
@@ -18,8 +18,8 @@ interface BlogPostCreateUpdateInput {
 }
 
 export interface BlogPost {
-  id: string;
-  author_id: string;
+  id: number;
+  author_id: number;
   title: string;
   content: string;
   is_published: boolean;
@@ -29,14 +29,14 @@ export interface BlogPost {
 export interface BlogPostModel {
   all: () => Promise<BlogPost[]>;
   connection: (args: PagerArgs) => any;
-  allByAuthor: (author_id: string) => Promise<BlogPost[]>;
-  byID: (id: string) => Promise<BlogPost>;
+  allByAuthor: (author_id: number) => Promise<BlogPost[]>;
+  byID: (id: number) => Promise<BlogPost>;
   create: (input: BlogPostCreateUpdateInput) => Promise<BlogPost>;
   update: (
-    post_id: string,
+    post_id: number,
     input: BlogPostCreateUpdateInput
   ) => Promise<BlogPost>;
-  delete: (post_id: string) => Promise<string>;
+  delete: (post_id: number) => Promise<number>;
 }
 
 const cols = [
@@ -54,7 +54,7 @@ const blog_posts = () =>
     .select<BlogPost[]>(cols);
 
 export const genPostModel = ({ auth, model }: Context): BlogPostModel => {
-  const byIDLoader = new DataLoader<string, BlogPost>(async (keys) => {
+  const byIDLoader = new DataLoader<number, BlogPost>(async (keys) => {
     const mapping = mapObjectsByProp(
       await blog_posts().whereIn("blog_post.id", keys),
       "id"
@@ -62,8 +62,8 @@ export const genPostModel = ({ auth, model }: Context): BlogPostModel => {
     return keys.map((key) => mapping[key]);
   });
 
-  const byAuthorLoader = new DataLoader<string, BlogPost[]>(async (keys) => {
-    const mapping = aggObjectsByProp(
+  const byAuthorLoader = new DataLoader<number, BlogPost[]>(async (keys) => {
+    const mapping = aggObjectsByProp<BlogPost, number>(
       await blog_posts().whereIn("author_id", keys),
       "author_id",
       (post) => {
@@ -71,15 +71,19 @@ export const genPostModel = ({ auth, model }: Context): BlogPostModel => {
         return post;
       }
     );
-    return keys.map((key) => mapping[key] ?? []);
+    return keys.map((key) => mapping.get(key) ?? []);
   });
 
   function primeLoaders(posts: BlogPost[]) {
-    const mapping = aggObjectsByProp(posts, "author_id", (post) => {
-      byIDLoader.prime(post.id, post);
-      return post;
-    });
-    Object.entries(mapping).forEach(([author_id, posts]) => {
+    const mapping = aggObjectsByProp<BlogPost, number>(
+      posts,
+      "author_id",
+      (post) => {
+        byIDLoader.prime(post.id, post);
+        return post;
+      }
+    );
+    mapping.forEach((posts, author_id) => {
       byAuthorLoader.prime(author_id, posts);
     });
     return posts;
@@ -99,11 +103,11 @@ export const genPostModel = ({ auth, model }: Context): BlogPostModel => {
       });
     },
 
-    allByAuthor(author_id: string): Promise<BlogPost[]> {
+    allByAuthor(author_id: number): Promise<BlogPost[]> {
       return byAuthorLoader.load(author_id);
     },
 
-    byID(id: string): Promise<BlogPost> {
+    byID(id: number): Promise<BlogPost> {
       return byIDLoader.load(id);
     },
 
@@ -112,7 +116,7 @@ export const genPostModel = ({ auth, model }: Context): BlogPostModel => {
         throw new Error("Must be authenticated.");
       }
       return await knex.transaction(async (trx) => {
-        const uuid = await genUUID(Type.BlogPost, trx);
+        const uuid = await generateID(Type.BlogPost, trx);
         const [content] = await trx("content").insert(
           {
             id: uuid,
@@ -143,7 +147,7 @@ export const genPostModel = ({ auth, model }: Context): BlogPostModel => {
     },
 
     async update(
-      post_id: string,
+      post_id: number,
       input: BlogPostCreateUpdateInput
     ): Promise<BlogPost> {
       if (!auth.loggedIn) {
@@ -196,7 +200,7 @@ export const genPostModel = ({ auth, model }: Context): BlogPostModel => {
       });
     },
 
-    async delete(post_id: string): Promise<string> {
+    async delete(post_id: number): Promise<number> {
       if (!auth.loggedIn) {
         throw new Error("Must be authenticated.");
       }

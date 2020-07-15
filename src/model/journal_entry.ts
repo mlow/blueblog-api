@@ -3,7 +3,7 @@ import {
   Context,
   Type,
   knex,
-  genUUID,
+  generateID,
   genConnection,
 } from "./index";
 import { PagerArgs } from "../graphql/pagination";
@@ -17,8 +17,8 @@ interface JournalEntryCreateUpdateInput {
 }
 
 export interface JournalEntry {
-  id: string;
-  author_id: string;
+  id: number;
+  author_id: number;
   title: string;
   content: string;
   date: Date;
@@ -26,13 +26,13 @@ export interface JournalEntry {
 
 export interface JournalEntryModel {
   connection: (args: PagerArgs) => any;
-  byID: (id: string) => Promise<JournalEntry>;
+  byID: (id: number) => Promise<JournalEntry>;
   create: (input: JournalEntryCreateUpdateInput) => Promise<JournalEntry>;
   update: (
-    post_id: string,
+    post_id: number,
     input: JournalEntryCreateUpdateInput
   ) => Promise<JournalEntry>;
-  delete: (post_id: string) => Promise<string>;
+  delete: (post_id: number) => Promise<number>;
 }
 
 const cols = [
@@ -58,7 +58,7 @@ export const genJournalEntryModel = ({
       .innerJoin("content", "journal_entry.id", "content.id")
       .select<JournalEntry[]>(cols)
       .where("content.author_id", "=", auth.id);
-  const byIDLoader = new DataLoader<string, JournalEntry>(async (keys) => {
+  const byIDLoader = new DataLoader<number, JournalEntry>(async (keys) => {
     const mapping = mapObjectsByProp(
       await journal_entries().whereIn("journal_entry.id", keys),
       "id"
@@ -76,16 +76,16 @@ export const genJournalEntryModel = ({
       });
     },
 
-    byID(id: string): Promise<JournalEntry> {
+    byID(id: number): Promise<JournalEntry> {
       return byIDLoader.load(id);
     },
 
     async create(input: JournalEntryCreateUpdateInput): Promise<JournalEntry> {
       return await knex.transaction(async (trx) => {
-        const uuid = await genUUID(Type.JournalEntry, trx);
+        const id = await generateID(Type.JournalEntry, trx);
         const [content] = await trx("content").insert(
           {
-            id: uuid,
+            id: id,
             author_id: auth.id,
             title: input.title,
             content: input.content,
@@ -94,14 +94,14 @@ export const genJournalEntryModel = ({
         );
         const [entry] = await trx("journal_entry").insert(
           {
-            id: uuid,
+            id: id,
             date: input.date ?? new Date(),
           },
           ["date"]
         );
 
         return {
-          id: uuid,
+          id: id,
           author_id: content.author_id,
           title: content.title,
           content: content.content,
@@ -111,7 +111,7 @@ export const genJournalEntryModel = ({
     },
 
     async update(
-      entry_id: string,
+      entry_id: number,
       input: JournalEntryCreateUpdateInput
     ): Promise<JournalEntry> {
       const entry = await this.byID(entry_id);
@@ -157,7 +157,7 @@ export const genJournalEntryModel = ({
       });
     },
 
-    async delete(entry_id: string): Promise<string> {
+    async delete(entry_id: number): Promise<number> {
       const entry = await this.byID(entry_id);
       if (!entry) {
         throw new Error("No entry with that ID found.");
@@ -167,7 +167,7 @@ export const genJournalEntryModel = ({
       }
 
       // cascading delete
-      await knex("uuid").where("uuid", entry.id).delete();
+      await knex("ids").where("id", entry.id).delete();
 
       return entry.id;
     },

@@ -1,6 +1,6 @@
 import { Application, Context, validateJwt } from "./mods";
 
-type Authentication = { loggedIn: true; id: string } | { loggedIn: false };
+type Authentication = { loggedIn: true; id: number } | { loggedIn: false };
 
 declare module "koa" {
   interface BaseContext {

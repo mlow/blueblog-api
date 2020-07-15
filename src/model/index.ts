@@ -151,21 +151,25 @@ export async function genConnection(
   };
 }
 
-const typeByUUID = new Map<String, String>();
-export async function getTypeByUUID(uuid: string) {
-  let type = typeByUUID.get(uuid);
+const typeByID = new Map<number, string>();
+export async function getTypeByUUID(id: number) {
+  let type = typeByID.get(id);
   if (!type) {
-    const result = await knex("uuid").first("type").where("uuid", uuid);
-    typeByUUID.set(uuid, result?.type);
+    const result = await knex("ids").first("type").where("id", id);
+    typeByID.set(id, result?.type);
+    type = result?.type;
   }
   return type;
 }
 
-export async function genUUID(type: Type, trx?: Transaction): Promise<string> {
-  const query = knex("uuid").insert({ type }, "uuid");
+export async function generateID(
+  type: Type,
+  trx?: Transaction
+): Promise<number> {
+  const query = knex("ids").insert({ type }, "id");
   if (trx) {
     query.transacting(trx);
   }
-  const [uuid] = await query;
-  return uuid;
+  const [id] = await query;
+  return id;
 }

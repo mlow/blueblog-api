@@ -12,6 +12,7 @@
     "dotenv": "^8.2.0",
     "graphql": "^15.3.0",
     "graphql-tag": "^2.10.4",
+    "hashids": "^2.2.1",
     "jsonwebtoken": "^8.5.1",
     "knex": "^0.21.2",
     "koa": "^2.13.0",

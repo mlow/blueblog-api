@@ -1,4 +1,5 @@
 import { gql, GraphQLScalarType } from "../mods";
+import { hash2id, id2hash } from "../utils";
 
 export const typeDefs = gql`
   """
@@ -20,5 +21,10 @@ export const resolvers = {
       }
       return result;
     },
+  }),
+  ID: new GraphQLScalarType({
+    name: "ID",
+    serialize: (value: number) => id2hash(value),
+    parseValue: (value: any) => hash2id(value),
   }),
 };

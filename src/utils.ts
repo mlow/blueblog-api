@@ -1,6 +1,7 @@
 import { Context, sign as makeJwt } from "./mods";
 import { Author } from "./model/author";
 import slug from "slug";
+import Hashids from "hashids";
 
 export function set_jwt_cookies(author: Author, ctx: Context) {
   const exp: number = 24 * 60 * 60 * 1000; // 1 day
@@ -49,15 +50,18 @@ export function mapObjectsByProp<T>(
   return map;
 }
 
-export function aggObjectsByProp<T>(
+export function aggObjectsByProp<T, KType>(
   objs: T[],
   key: string,
   fn?: (arg: T) => T
-): { [key: string]: T[] } {
-  const map: { [key: string]: T[] } = {};
+): Map<KType, T[]> {
+  const map = new Map<KType, T[]>();
   objs.forEach((obj: any) => {
     obj = typeof fn !== "undefined" ? fn(obj) : obj;
-    const arr: T[] = map[obj[key]] ?? (map[obj[key]] = []);
+    let arr = map.get(obj[key]);
+    if (!arr) {
+      map.set(obj[key], (arr = []));
+    }
     arr.push(obj);
   });
   return map;
@@ -65,4 +69,12 @@ export function aggObjectsByProp<T>(
 
 export function sluggify(str: string) {
   return slug(str);
+}
+
+const hashids = new Hashids(process.env.HASHIDS_SALT || "blueblog", 8);
+export function id2hash(id: number) {
+  return hashids.encode(id);
+}
+export function hash2id(hash: string) {
+  return hashids.decode(hash)[0];
 }

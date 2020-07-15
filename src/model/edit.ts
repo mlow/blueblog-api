@@ -1,4 +1,4 @@
-import { DataLoader, Context, Type, knex, genUUID } from "./index";
+import { DataLoader, Context, Type, knex, generateID } from "./index";
 import { mapObjectsByProp, aggObjectsByProp } from "../utils";
 import { Transaction } from "knex";
 
@@ -9,14 +9,14 @@ export interface EditChange {
 }
 
 interface EditCreateInput {
-  content_id: string;
+  content_id: number;
   date: Date;
   changes: EditChange[];
 }
 
 export interface Edit {
-  id: string;
-  content_id: string;
+  id: number;
+  content_id: number;
   date: Date;
   changes: EditChange[];
 }
@@ -31,8 +31,8 @@ function fromRawData({ changes, ...rest }: any): Edit {
 }
 
 export interface EditModel {
-  allByContent: (content_id: string) => Promise<Edit[]>;
-  byID: (id: string) => Promise<MaybeEdit>;
+  allByContent: (content_id: number) => Promise<Edit[]>;
+  byID: (id: number) => Promise<MaybeEdit>;
   create: (input: EditCreateInput, trx: Transaction) => Promise<Edit>;
 }
 
@@ -41,7 +41,7 @@ const edits = () =>
   knex<Edit>("edit").select<Edit[]>(cols).orderBy("date", "desc");
 
 export const genEditModel = (ctx: Context): EditModel => {
-  const editByIDLoader = new DataLoader<string, Edit>(async (keys) => {
+  const editByIDLoader = new DataLoader<number, Edit>(async (keys) => {
     const mapping = mapObjectsByProp(
       await edits().whereIn("id", keys),
       "id",
@@ -50,8 +50,8 @@ export const genEditModel = (ctx: Context): EditModel => {
     return keys.map((key) => mapping[key]);
   });
 
-  const editsByContentLoader = new DataLoader<string, Edit[]>(async (keys) => {
-    const mapping = aggObjectsByProp(
+  const editsByContentLoader = new DataLoader<number, Edit[]>(async (keys) => {
+    const mapping = aggObjectsByProp<Edit, number>(
       await edits().whereIn("content_id", keys),
       "content_id",
       (edit) => {
@@ -60,15 +60,15 @@ export const genEditModel = (ctx: Context): EditModel => {
         return edit;
       }
     );
-    return keys.map((key) => mapping[key] ?? []);
+    return keys.map((key) => mapping.get(key) ?? []);
   });
 
   return {
-    allByContent(content_id: string): Promise<Edit[]> {
+    allByContent(content_id: number): Promise<Edit[]> {
       return editsByContentLoader.load(content_id);
     },
 
-    byID(id: string): Promise<MaybeEdit> {
+    byID(id: number): Promise<MaybeEdit> {
       return editByIDLoader.load(id);
     },
 
@@ -78,7 +78,7 @@ export const genEditModel = (ctx: Context): EditModel => {
         .insert(
           {
             ...input,
-            id: await genUUID(Type.Edit, trx),
+            id: await generateID(Type.Edit, trx),
             changes: JSON.stringify(input.changes),
           },
           "*"
