@@ -5,11 +5,12 @@ import Hashids from "hashids";
 
 export function set_jwt_cookies(author: Author, ctx: Context) {
   const exp: number = 24 * 60 * 60 * 1000; // 1 day
+  const authorIdHash = id2hash(author.id);
   const jwt = makeJwt(
     {
-      sub: author.id,
+      sub: authorIdHash,
       author: {
-        id: author.id,
+        id: authorIdHash,
         name: author.name,
         username: author.username,
       },
@@ -76,5 +77,9 @@ export function id2hash(id: number) {
   return hashids.encode(id);
 }
 export function hash2id(hash: string) {
-  return hashids.decode(hash)[0];
+  const decoded = hashids.decode(hash)[0];
+  if (!decoded) {
+    throw new Error("Invalid ID, could not decode.");
+  }
+  return decoded;
 }

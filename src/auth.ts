@@ -1,4 +1,5 @@
 import { Application, Context, validateJwt } from "./mods";
+import { hash2id } from "./utils";
 
 type Authentication = { loggedIn: true; id: number } | { loggedIn: false };
 
@@ -45,7 +46,7 @@ async function getAuthentication({
 
   return {
     loggedIn: true,
-    id: validatedJwt.sub,
+    id: hash2id(validatedJwt.sub) as number,
   };
 }
 
