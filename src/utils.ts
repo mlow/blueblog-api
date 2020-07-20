@@ -77,9 +77,9 @@ export function id2hash(id: number) {
   return hashids.encode(id);
 }
 export function hash2id(hash: string) {
-  const decoded = hashids.decode(hash)[0];
+  const [decoded] = hashids.decode(hash);
   if (!decoded) {
-    throw new Error("Invalid ID, could not decode.");
+    return -1;
   }
   return decoded;
 }

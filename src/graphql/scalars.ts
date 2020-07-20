@@ -1,5 +1,6 @@
 import { gql, GraphQLScalarType } from "../mods";
 import { hash2id, id2hash } from "../utils";
+import { Kind, GraphQLError } from "graphql";
 
 export const typeDefs = gql`
   """
@@ -26,5 +27,13 @@ export const resolvers = {
     name: "ID",
     serialize: (value: number) => id2hash(value),
     parseValue: (value: any) => hash2id(value),
+    parseLiteral(valueNode) {
+      if (valueNode.kind !== Kind.STRING && valueNode.kind !== Kind.INT) {
+        throw new GraphQLError(
+          "ID cannot represent a non-string and non-integer value"
+        );
+      }
+      return hash2id(valueNode.value);
+    },
   }),
 };
