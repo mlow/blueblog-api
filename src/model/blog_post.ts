@@ -14,7 +14,6 @@ import { insertContentEdit } from "./util";
 interface BlogPostCreateUpdateInput {
   title?: string;
   content?: string;
-  is_published?: boolean;
   publish_date?: Date;
 }
 
@@ -23,7 +22,6 @@ export interface BlogPost {
   author_id: number;
   title: string;
   content: string;
-  is_published: boolean;
   publish_date: Date;
 }
 
@@ -45,7 +43,6 @@ const cols = [
   "content.author_id",
   "content.title",
   "content.content",
-  "blog_post.is_published",
   "blog_post.publish_date",
 ];
 
@@ -134,10 +131,9 @@ export const genPostModel = ({ auth, model }: Context): BlogPostModel => {
         const [post] = await trx("blog_post").insert(
           {
             id: uuid,
-            is_published: input.is_published ?? false,
             publish_date: input.publish_date ?? new Date(),
           },
-          ["is_published", "publish_date"]
+          ["publish_date"]
         );
 
         return {
@@ -145,7 +141,6 @@ export const genPostModel = ({ auth, model }: Context): BlogPostModel => {
           author_id: content.author_id,
           title: content.title,
           content: content.content,
-          is_published: post.is_published,
           publish_date: post.publish_date,
         };
       });
@@ -192,15 +187,10 @@ export const genPostModel = ({ auth, model }: Context): BlogPostModel => {
           post.content = content.content;
         }
 
-        post.is_published = input.is_published ?? post.is_published;
         post.publish_date = input.publish_date ?? post.publish_date;
-        await trx("blog_post").where("id", post.id).update(
-          {
-            is_published: post.is_published,
-            publish_date: post.publish_date,
-          },
-          "*"
-        );
+        await trx("blog_post").where("id", post.id).update({
+          publish_date: post.publish_date,
+        });
         return post;
       });
     },
@@ -218,7 +208,7 @@ export const genPostModel = ({ auth, model }: Context): BlogPostModel => {
       }
 
       // cascading delete
-      await knex("uuid").where("id", post.id).delete();
+      await knex("ids").where("id", post.id).delete();
 
       return post.id;
     },

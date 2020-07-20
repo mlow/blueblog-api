@@ -35,7 +35,6 @@ export async function up(knex: Knex): Promise<any> {
 
     CREATE TABLE blog_post (
       id bigint NOT NULL REFERENCES content (id) ON DELETE CASCADE,
-      is_published boolean NOT NULL,
       publish_date timestamp NOT NULL DEFAULT DATE_TRUNC('milliseconds', CLOCK_TIMESTAMP()),
       PRIMARY KEY (id)
     );

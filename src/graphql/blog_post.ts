@@ -11,6 +11,9 @@ export const typeDefs = gql`
   type BlogPost implements Node & Content {
     id: ID!
 
+    "The ID of the author of this blog post."
+    author_id: ID!
+
     "The author of the blog post."
     author: Author!
 
@@ -19,9 +22,6 @@ export const typeDefs = gql`
 
     "The content of the blog post."
     content: String!
-
-    "Whether this blog post is currently published."
-    is_published: Boolean!
 
     "The date the blog post was (or will be) published."
     publish_date: DateTime!
@@ -58,7 +58,6 @@ export const typeDefs = gql`
   input UpdateBlogPostInput {
     title: String
     content: String
-    is_published: Boolean
     publish_date: DateTime
   }
 
