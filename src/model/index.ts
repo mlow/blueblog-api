@@ -107,13 +107,19 @@ export async function genConnection(
   const forwardSort = ascending ? "asc" : "desc";
   const backwardSort = ascending ? "desc" : "asc";
 
+  const firstDefined = typeof input.first === "number";
+  const lastDefined = typeof input.last === "number";
+
   const edges: { before?: []; after?: [] } = {};
   let startCursor: string | null = null;
   let endCursor: string | null = null;
   let hasPreviousPage = false;
   let hasNextPage = false;
 
-  if (input.first || input.after || (!input.last && !input.before)) {
+  if (
+    (!firstDefined || input.first! > 0) &&
+    (firstDefined || input.after || (!input.last && !input.before))
+  ) {
     const tmp = query.clone();
     if (input.after) {
       tmp.where(cursorColumn, afterComp, deserialize(input.after));
@@ -132,7 +138,7 @@ export async function genConnection(
     }
     edges.after = result;
   }
-  if (input.last || input.before) {
+  if ((!lastDefined || input.last! > 0) && (lastDefined || input.before)) {
     const tmp = query.clone();
     if (input.before) {
       tmp.where(cursorColumn, beforeComp, deserialize(input.before));
