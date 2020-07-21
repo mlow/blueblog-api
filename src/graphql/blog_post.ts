@@ -3,6 +3,7 @@ import { validatePagerInput } from "./pagination";
 import { Context } from "../model/index";
 import { getCursor, BlogPost } from "../model/blog_post";
 import { sluggify } from "../utils";
+import { resolveContent } from "./content";
 
 export const typeDefs = gql`
   """
@@ -21,7 +22,7 @@ export const typeDefs = gql`
     title: String!
 
     "The content of the blog post."
-    content: String!
+    content(format: ContentFormat = MARKDOWN): String!
 
     "The date the blog post was (or will be) published."
     publish_date: DateTime!
@@ -83,6 +84,8 @@ export const resolvers = {
     },
     slug: (post: BlogPost) => sluggify(post.title),
     cursor: (post: BlogPost) => getCursor(post),
+    content: (post: BlogPost, { format }: any) =>
+      resolveContent(format, post.content),
   },
   Query: {
     blog_post: (obj: any, { id }: any, { model }: Context) => {

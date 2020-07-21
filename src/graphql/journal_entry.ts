@@ -2,6 +2,7 @@ import { gql } from "../mods";
 import { PagerInput, validatePagerInput } from "./pagination";
 import { Context } from "../model/index";
 import { JournalEntry } from "../model/journal_entry";
+import { resolveContent } from "./content";
 
 export const typeDefs = gql`
   """
@@ -14,7 +15,7 @@ export const typeDefs = gql`
     title: String!
 
     "The content of this journal entry."
-    content: String!
+    content(format: ContentFormat = MARKDOWN): String!
 
     "The date of this journal entry."
     date: DateTime!
@@ -67,6 +68,8 @@ export const resolvers = {
     edits: (entry: JournalEntry, args: any, { model }: Context) => {
       return model.Edit.allByContent(entry.id);
     },
+    content: (entry: JournalEntry, { format }: any) =>
+      resolveContent(format, entry.content),
   },
   Query: {
     journal_entry: (obj: any, { id }: any, { model }: Context) => {

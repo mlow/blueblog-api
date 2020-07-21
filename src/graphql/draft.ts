@@ -13,7 +13,7 @@ export const typeDefs = gql`
     title: String!
 
     "The content of the draft."
-    content: String!
+    content(format: ContentFormat = MARKDOWN): String!
 
     "The date of the last time this draft was edited."
     date: DateTime!
