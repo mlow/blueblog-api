@@ -22,7 +22,6 @@ export const typeDefs = gql`
 const md = new markdownIt({
   linkify: true,
   typographer: true,
-  breaks: true,
 })
   .use(require("markdown-it-abbr"))
   .use(require("markdown-it-deflist"))
