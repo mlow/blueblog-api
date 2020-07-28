@@ -54,10 +54,9 @@ export async function up(knex: Knex): Promise<any> {
     );
 
     CREATE TABLE draft (
-      content_id bigint NOT NULL REFERENCES content (id) ON DELETE CASCADE,
-      type type NOT NULL,
+      id bigint NOT NULL REFERENCES content (id) ON DELETE CASCADE,
       date timestamp NOT NULL DEFAULT DATE_TRUNC('millisconds', CLOCK_TIMESTAMP()),
-      PRIMARY KEY (content_id)
+      PRIMARY KEY (id)
     );
   `);
 }

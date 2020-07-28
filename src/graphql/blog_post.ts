@@ -52,7 +52,6 @@ export const typeDefs = gql`
   input CreateBlogPostInput {
     title: String!
     content: String!
-    is_published: Boolean
     publish_date: DateTime
   }
 

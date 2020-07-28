@@ -1,6 +1,8 @@
 import { gql } from "../mods";
 import { validatePagerInput } from "./pagination";
 import { Context } from "../model/index";
+import { Draft } from "../model/draft";
+import { resolveContent } from "./content";
 
 export const typeDefs = gql`
   """
@@ -34,14 +36,11 @@ export const typeDefs = gql`
   input CreateDraftInput {
     title: String!
     content: String!
-    date: DateTime
   }
 
   input UpdateDraftInput {
     title: String
     content: String
-    is_published: Boolean
-    publish_date: DateTime
   }
 
   type Query {
@@ -57,6 +56,10 @@ export const typeDefs = gql`
 `;
 
 export const resolvers = {
+  Draft: {
+    content: (draft: Draft, { format }: any) =>
+      resolveContent(format, draft.content),
+  },
   Query: {
     draft: (obj: any, { id }: any, { model }: Context) => {
       return model.Draft.byID(id);

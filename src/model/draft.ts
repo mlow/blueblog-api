@@ -73,9 +73,9 @@ export const getDraftModel = ({ auth, model }: Context): DraftModel => {
       return byIDLoader.load(id);
     },
 
-    async create(input: DraftCreateUpdateInput): Promise<Draft> {
-      return await knex.transaction(async (trx) => {
-        const id = await generateID(Type.JournalEntry, trx);
+    create(input: DraftCreateUpdateInput): Promise<Draft> {
+      return knex.transaction(async (trx) => {
+        const id = await generateID(Type.Draft, trx);
         const [content] = await trx("content").insert(
           {
             id: id,
@@ -88,7 +88,7 @@ export const getDraftModel = ({ auth, model }: Context): DraftModel => {
         const [draft] = await trx("draft").insert(
           {
             id: id,
-            date: input.date ?? new Date(),
+            date: new Date(),
           },
           ["date"]
         );
@@ -115,7 +115,7 @@ export const getDraftModel = ({ auth, model }: Context): DraftModel => {
         throw new Error("You cannot edit another author's draft.");
       }
 
-      return await knex.transaction(async (trx) => {
+      return knex.transaction(async (trx) => {
         if (
           (input.content && input.content !== draft.content) ||
           (input.title && input.title !== draft.title)
@@ -131,19 +131,18 @@ export const getDraftModel = ({ auth, model }: Context): DraftModel => {
             );
           draft.title = content.title;
           draft.content = content.content;
-        }
-        if (input.date && input.date.getTime() !== draft.date.getTime()) {
-          draft.date = input.date;
+          const date = new Date();
           await trx("draft").where("id", draft.id).update({
-            date: draft.date,
+            date,
           });
+          draft.date = date;
         }
         return draft;
       });
     },
 
-    async delete(entry_id: number): Promise<number> {
-      const draft = await this.byID(entry_id);
+    async delete(draft_id: number): Promise<number> {
+      const draft = await this.byID(draft_id);
       if (!draft) {
         throw new Error("No entry with that ID found.");
       }
