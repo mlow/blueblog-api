@@ -31,7 +31,7 @@ const md = new markdownIt({
   .use(require("markdown-it-mark"))
   .use(require("markdown-it-sub"))
   .use(require("markdown-it-sup"))
-  .use(require("markdown-it-task-lists"), { enabled: true });
+  .use(require("markdown-it-task-lists"));
 
 export function resolveContent(format: string, markdown: string) {
   switch (format) {
