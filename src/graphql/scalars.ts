@@ -9,18 +9,28 @@ export const typeDefs = gql`
   scalar DateTime
 `;
 
+function resolveDateTime(value: string) {
+  const date = new Date(value);
+  if (date.toString() === "Invalid Date") {
+    throw new Error(`Invalid DateTime format: ${value}`);
+  }
+  return date;
+}
+
 export const resolvers = {
   DateTime: new GraphQLScalarType({
     name: "DateTime",
     serialize(value: Date) {
       return value.toISOString();
     },
-    parseValue(value: any) {
-      let result = new Date(value);
-      if (result.toString() === "Invalid Date") {
-        throw new Error(`Invalid time format: ${value}`);
+    parseValue: (value: any) => resolveDateTime(value),
+    parseLiteral(valueNode) {
+      if (valueNode.kind !== Kind.STRING) {
+        throw new GraphQLError(
+          "DateTime cannot be represented by a non-string value"
+        );
       }
-      return result;
+      return resolveDateTime(valueNode.value);
     },
   }),
   ID: new GraphQLScalarType({
