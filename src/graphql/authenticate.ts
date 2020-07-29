@@ -6,8 +6,8 @@ import { Context } from "../model/index";
 export const typeDefs = gql`
   type Mutation {
     """
-    Attempt to authenticate. If successful, returns a JWT. Otherwise, an error
-    is returned.
+    Attempt to authenticate. If successful, returns a JWT with all encoded
+    authentication data. Otherwise, an error is returned.
     """
     authenticate(username: String!, password: String!): String!
   }

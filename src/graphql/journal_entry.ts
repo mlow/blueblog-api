@@ -19,9 +19,6 @@ export const typeDefs = gql`
 
     "The date of this journal entry."
     date: DateTime!
-
-    "All edits that have been made this journal entry."
-    edits: [Edit!]!
   }
 
   type JournalEntryEdge {
@@ -49,7 +46,6 @@ export const typeDefs = gql`
   }
 
   type Query {
-    journal_entry(id: ID!): JournalEntry
     journal_entries(pager: Pager): JournalEntryConnection!
   }
 
@@ -65,16 +61,10 @@ export const typeDefs = gql`
 
 export const resolvers = {
   JournalEntry: {
-    edits: (entry: JournalEntry, args: any, { model }: Context) => {
-      return model.Edit.allByContent(entry.id);
-    },
     content: (entry: JournalEntry, { format }: any) =>
       resolveContent(format, entry.content),
   },
   Query: {
-    journal_entry: (obj: any, { id }: any, { model }: Context) => {
-      return model.JournalEntry.byID(id);
-    },
     journal_entries: (
       obj: any,
       { pager }: { pager: PagerInput },

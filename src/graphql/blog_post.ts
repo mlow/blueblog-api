@@ -32,9 +32,6 @@ export const typeDefs = gql`
 
     "The cursor of this post, used for pagination."
     cursor: String!
-
-    "All edits that have been made this post from most recent to oldest."
-    edits: [Edit!]!
   }
 
   type BlogPostEdge {
@@ -62,7 +59,6 @@ export const typeDefs = gql`
   }
 
   type Query {
-    blog_post(id: ID!): BlogPost
     blog_posts(pager: Pager): BlogPostConnection!
   }
 
@@ -78,18 +74,12 @@ export const resolvers = {
     author: (post: BlogPost, args: any, { model }: Context) => {
       return model.Author.byID(post.author_id);
     },
-    edits: (post: BlogPost, args: any, { model }: Context) => {
-      return model.Edit.allByContent(post.id);
-    },
     slug: (post: BlogPost) => sluggify(post.title),
     cursor: (post: BlogPost) => getCursor(post),
     content: (post: BlogPost, { format }: any) =>
       resolveContent(format, post.content),
   },
   Query: {
-    blog_post: (obj: any, { id }: any, { model }: Context) => {
-      return model.BlogPost.byID(id);
-    },
     blog_posts: (obj: any, { pager }: any, { model }: Context) => {
       return model.BlogPost.connection(validatePagerInput(pager));
     },

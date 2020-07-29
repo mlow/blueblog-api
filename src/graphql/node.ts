@@ -33,6 +33,9 @@ export const resolvers = {
         case Type.Edit:
           obj = await model.Edit.byID(id);
           break;
+        case Type.Draft:
+          obj = await model.Draft.byID(id);
+          break;
         default:
           return null;
       }

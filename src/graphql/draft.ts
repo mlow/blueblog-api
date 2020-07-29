@@ -44,7 +44,6 @@ export const typeDefs = gql`
   }
 
   type Query {
-    draft(id: ID!): Draft
     drafts(pager: Pager): DraftConnection!
   }
 
@@ -61,9 +60,6 @@ export const resolvers = {
       resolveContent(format, draft.content),
   },
   Query: {
-    draft: (obj: any, { id }: any, { model }: Context) => {
-      return model.Draft.byID(id);
-    },
     drafts: (obj: any, { pager }: any, { model }: Context) => {
       return model.Draft.connection(validatePagerInput(pager));
     },

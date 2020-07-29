@@ -12,9 +12,6 @@ export const typeDefs = gql`
 
     "The author's name."
     name: String!
-
-    "All blog posts written by this author."
-    posts: [BlogPost!]!
   }
 
   input CreateAuthorInput {
@@ -30,11 +27,6 @@ export const typeDefs = gql`
     new_password: String
   }
 
-  type Query {
-    author(name: String!): Author!
-    authors: [Author!]!
-  }
-
   type Mutation {
     create_author(input: CreateAuthorInput!): Author!
     update_author(input: UpdateAuthorInput!): Author!
@@ -42,19 +34,6 @@ export const typeDefs = gql`
 `;
 
 export const resolvers = {
-  Author: {
-    posts: (author: Author, args: any, { model }: Context) => {
-      return model.BlogPost.allByAuthor(author.id);
-    },
-  },
-  Query: {
-    author: (obj: any, { name }: any, { model }: Context) => {
-      return model.Author.byName(name);
-    },
-    authors: (obj: any, args: any, { model }: Context) => {
-      return model.Author.all();
-    },
-  },
   Mutation: {
     create_author: (obj: any, { input }: any, { model }: Context) => {
       return model.Author.create(input);
