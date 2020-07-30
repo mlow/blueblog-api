@@ -13,6 +13,8 @@ export function set_jwt_cookies(author: Author, ctx: Context) {
         id: authorIdHash,
         name: author.name,
         username: author.username,
+        key_salt: author.key_salt,
+        wrapped_key: author.wrapped_key,
       },
     },
     process.env.SECRET!,

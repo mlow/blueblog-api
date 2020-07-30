@@ -1,5 +1,5 @@
 import { gql } from "../mods";
-import { Context, Author } from "../model/index";
+import { Context } from "../model/index";
 
 import { set_jwt_cookies } from "../utils";
 
@@ -18,6 +18,8 @@ export const typeDefs = gql`
     name: String!
     username: String!
     password: String!
+    key_salt: String
+    wrapped_key: String
   }
 
   input UpdateAuthorInput {
@@ -25,6 +27,8 @@ export const typeDefs = gql`
     name: String
     username: String
     new_password: String
+    key_salt: String
+    wrapped_key: String
   }
 
   type Mutation {

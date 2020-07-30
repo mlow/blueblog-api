@@ -22,11 +22,13 @@ export async function up(knex: Knex): Promise<any> {
       name text NOT NULL,
       username text UNIQUE NOT NULL,
       password_hash text NOT NULL,
+      key_salt text NOT NULL,
+      wrapped_key text NOT NULL,
       PRIMARY KEY (id)
     );
 
     CREATE TABLE content (
-      id bigint NOT NULL references ids (id) ON DELETE CASCADE,
+      id bigint NOT NULL REFERENCES ids (id) ON DELETE CASCADE,
       author_id bigint NOT NULL REFERENCES author (id) ON DELETE CASCADE,
       title text NOT NULL,
       content text NOT NULL,

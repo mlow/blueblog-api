@@ -7,6 +7,8 @@ export interface Author {
   name: string;
   username: string;
   password_hash: string;
+  key_salt: string;
+  wrapped_key: string;
 }
 
 export interface AuthorModel {
@@ -14,11 +16,31 @@ export interface AuthorModel {
   byID: (id: number) => Promise<Author>;
   byName: (name: string) => Promise<Author>;
   byUsername: (username: string) => Promise<Author>;
-  create: ({ name, username, password }: any) => Promise<Author>;
-  update: ({ name, username, password, new_password }: any) => Promise<Author>;
+  create: ({
+    name,
+    username,
+    password,
+    key_salt,
+    wrapped_key,
+  }: any) => Promise<Author>;
+  update: ({
+    name,
+    username,
+    password,
+    new_password,
+    key_salt,
+    wrapped_key,
+  }: any) => Promise<Author>;
 }
 
-const cols = ["id", "name", "username", "password_hash"];
+const cols = [
+  "id",
+  "name",
+  "username",
+  "password_hash",
+  "key_salt",
+  "wrapped_key",
+];
 const authors = () => knex<Author>("author").select<Author[]>(cols);
 const author = () => knex<Author>("author").first<Author>(cols);
 
@@ -60,7 +82,13 @@ export const genAuthorModel = ({ auth }: Context): AuthorModel => {
       return author().where(knex.raw('LOWER("username") = ?', username));
     },
 
-    async create({ name, username, password }: any): Promise<Author> {
+    async create({
+      name,
+      username,
+      password,
+      key_salt,
+      wrapped_key,
+    }: any): Promise<Author> {
       let author = await this.byUsername(username);
       if (author) {
         throw new Error("That username is already taken.");
@@ -73,8 +101,10 @@ export const genAuthorModel = ({ auth }: Context): AuthorModel => {
             name,
             username,
             password_hash: await hash(password),
+            key_salt,
+            wrapped_key,
           },
-          "*"
+          cols
         );
         return author;
       });
@@ -85,6 +115,8 @@ export const genAuthorModel = ({ auth }: Context): AuthorModel => {
       username,
       password,
       new_password,
+      key_salt,
+      wrapped_key,
     }: any): Promise<Author> {
       if (!auth.loggedIn) {
         throw new Error("Must be authenticated.");
@@ -95,14 +127,21 @@ export const genAuthorModel = ({ auth }: Context): AuthorModel => {
       }
 
       if (new_password) {
+        if (!key_salt || !wrapped_key) {
+          throw new Error(
+            "If password is being changed, we expect a new key_salt and wrapped_key."
+          );
+        }
         author.password_hash = await hash(new_password);
+        author.key_salt = key_salt;
+        author.wrapped_key = wrapped_key;
       }
       author.name = name ?? author.name;
       author.username = username ?? author.username;
 
       [author] = await knex<Author>("author")
         .where("id", author.id)
-        .update(author, "*");
+        .update(author, cols);
 
       return author;
     },
