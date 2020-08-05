@@ -9,39 +9,45 @@ import {
 } from "./index";
 import { PagerInput } from "../graphql/pagination";
 import { mapObjectsByProp } from "../utils";
-import { insertContentEdit } from "./util";
 
-interface JournalEntryCreateUpdateInput {
-  title?: string;
-  content?: string;
+interface JournalEntryCreateInput {
+  encryption_params: any;
+  ciphertext: string;
   date?: Date;
+  draft?: boolean;
+}
+
+interface JournalEntryUpdateInput {
+  encryption_params?: any;
+  ciphertext?: string;
+  date?: Date;
+  draft?: boolean;
 }
 
 export interface JournalEntry {
   id: number;
   author_id: number;
-  title: string;
-  content: string;
+  encryption_params: any;
+  ciphertext: string;
   date: Date;
+  draft: boolean;
 }
 
 export interface JournalEntryModel {
-  connection: (args: PagerInput) => any;
+  connection: (args: PagerInput, draft: boolean) => any;
   byID: (id: number) => Promise<JournalEntry>;
-  create: (input: JournalEntryCreateUpdateInput) => Promise<JournalEntry>;
-  update: (
-    post_id: number,
-    input: JournalEntryCreateUpdateInput
-  ) => Promise<JournalEntry>;
-  delete: (post_id: number) => Promise<number>;
+  create: (input: JournalEntryCreateInput) => Promise<JournalEntry>;
+  update: (id: number, input: JournalEntryUpdateInput) => Promise<JournalEntry>;
+  delete: (id: number) => Promise<number>;
 }
 
 const cols = [
-  "content.id",
-  "content.author_id",
-  "content.title",
-  "content.content",
+  "journal_entry.id",
+  "journal_entry.author_id",
+  "encrypted.encryption_params",
+  "encrypted.ciphertext",
   "journal_entry.date",
+  "journal_entry.draft",
 ];
 
 export const genJournalEntryModel = ({
@@ -56,9 +62,9 @@ export const genJournalEntryModel = ({
 
   const journal_entries = () =>
     knex<JournalEntry>("journal_entry")
-      .innerJoin("content", "journal_entry.id", "content.id")
+      .innerJoin("encrypted", "journal_entry.id", "encrypted.id")
       .select<JournalEntry[]>(cols)
-      .where("content.author_id", "=", auth.id);
+      .where("journal_entry.author_id", "=", auth.id);
   const byIDLoader = new DataLoader<number, JournalEntry>(async (keys) => {
     const mapping = mapObjectsByProp(
       await journal_entries().whereIn("journal_entry.id", keys),
@@ -68,10 +74,10 @@ export const genJournalEntryModel = ({
   });
 
   return {
-    connection(args: PagerInput) {
+    connection(args: PagerInput, draft: boolean) {
       return genConnection(
         args,
-        journal_entries(),
+        journal_entries().where("journal_entry.draft", "=", draft),
         "date",
         "desc",
         DateCursorSerializer
@@ -82,39 +88,41 @@ export const genJournalEntryModel = ({
       return byIDLoader.load(id);
     },
 
-    async create(input: JournalEntryCreateUpdateInput): Promise<JournalEntry> {
+    async create(input: JournalEntryCreateInput): Promise<JournalEntry> {
       return await knex.transaction(async (trx) => {
         const id = await generateID(Type.JournalEntry, trx);
-        const [content] = await trx("content").insert(
+        const [encrypted] = await trx("encrypted").insert(
           {
             id: id,
-            author_id: auth.id,
-            title: input.title,
-            content: input.content,
+            encryption_params: input.encryption_params,
+            ciphertext: input.ciphertext,
           },
-          ["author_id", "title", "content"]
+          ["encryption_params", "ciphertext"]
         );
         const [entry] = await trx("journal_entry").insert(
           {
             id: id,
+            author_id: auth.id,
             date: input.date ?? new Date(),
+            draft: !!input.draft,
           },
-          ["date"]
+          ["author_id", "date", "draft"]
         );
 
         return {
           id: id,
-          author_id: content.author_id,
-          title: content.title,
-          content: content.content,
+          author_id: entry.author_id,
+          encryption_params: encrypted.encryption_params,
+          ciphertext: encrypted.ciphertext,
           date: entry.date,
+          draft: entry.draft,
         };
       });
     },
 
     async update(
       entry_id: number,
-      input: JournalEntryCreateUpdateInput
+      input: JournalEntryUpdateInput
     ): Promise<JournalEntry> {
       const entry = await this.byID(entry_id);
       if (!entry) {
@@ -125,35 +133,31 @@ export const genJournalEntryModel = ({
       }
 
       return await knex.transaction(async (trx) => {
-        const contentChanged = input.content && input.content !== entry.content;
-        if (contentChanged) {
-          await insertContentEdit(
-            trx,
-            model.Edit,
-            entry.id,
-            entry.content,
-            input.content!
-          );
-        }
-
-        if (contentChanged || (input.title && input.title !== entry.title)) {
-          const [content] = await trx("content")
+        if (input.ciphertext && input.encryption_params) {
+          const [encrypted] = await trx("encrypted")
             .where("id", entry.id)
             .update(
               {
-                title: input.title ?? entry.title,
-                content: input.content ?? entry.content,
+                encryption_params: input.encryption_params,
+                ciphertext: input.ciphertext,
               },
-              ["title", "content"]
+              ["encryption_params", "ciphertext"]
             );
-          entry.title = content.title;
-          entry.content = content.content;
+          entry.encryption_params = encrypted.encryption_params;
+          entry.ciphertext = encrypted.ciphertext;
         }
-        if (input.date && input.date.getTime() !== entry.date.getTime()) {
-          entry.date = input.date;
-          await trx("journal_entry").where("id", entry.id).update({
-            date: entry.date,
-          });
+        if (input.date || typeof input.draft !== "undefined") {
+          const [result] = await trx("journal_entry")
+            .where("id", entry.id)
+            .update(
+              {
+                date: input.date,
+                draft: input.draft,
+              },
+              ["date", "draft"]
+            );
+          entry.date = new Date(result.date);
+          entry.draft = result.draft;
         }
         return entry;
       });
@@ -165,7 +169,7 @@ export const genJournalEntryModel = ({
         throw new Error("No entry with that ID found.");
       }
       if (auth.id != entry.author_id) {
-        throw new Error("You cannot delete another author's post.");
+        throw new Error("You cannot delete another author's journal entry.");
       }
 
       // cascading delete

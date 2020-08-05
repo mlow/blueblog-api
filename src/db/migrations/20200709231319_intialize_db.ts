@@ -22,8 +22,8 @@ export async function up(knex: Knex): Promise<any> {
       name text NOT NULL,
       username text UNIQUE NOT NULL,
       password_hash text NOT NULL,
-      key_salt text NOT NULL,
-      wrapped_key text NOT NULL,
+      key_salt text,
+      wrapped_key text,
       PRIMARY KEY (id)
     );
 
@@ -35,6 +35,13 @@ export async function up(knex: Knex): Promise<any> {
       PRIMARY KEY (id)
     );
 
+    CREATE TABLE encrypted (
+      id bigint NOT NULL REFERENCES ids (id) ON DELETE CASCADE,
+      encryption_params json NOT NULL,
+      ciphertext text NOT NULL,
+      PRIMARY KEY (id)
+    );
+
     CREATE TABLE blog_post (
       id bigint NOT NULL REFERENCES content (id) ON DELETE CASCADE,
       publish_date timestamp NOT NULL DEFAULT DATE_TRUNC('milliseconds', CLOCK_TIMESTAMP()),
@@ -42,8 +49,10 @@ export async function up(knex: Knex): Promise<any> {
     );
 
     CREATE TABLE journal_entry (
-      id bigint NOT NULL REFERENCES content (id) ON DELETE CASCADE,
+      id bigint NOT NULL REFERENCES ids (id) ON DELETE CASCADE,
+      author_id bigint NOT NULL REFERENCES author (id) ON DELETE CASCADE,
       date timestamp NOT NULL DEFAULT DATE_TRUNC('milliseconds', CLOCK_TIMESTAMP()),
+      draft boolean NOT NULL,
       PRIMARY KEY (id)
     );
 
@@ -68,6 +77,7 @@ export async function down(knex: Knex): Promise<any> {
   await knex.schema.dropTable("edit");
   await knex.schema.dropTable("journal_entry");
   await knex.schema.dropTable("blog_post");
+  await knex.schema.dropTable("encrypted");
   await knex.schema.dropTable("content");
   await knex.schema.dropTable("author");
   await knex.schema.dropTable("ids");

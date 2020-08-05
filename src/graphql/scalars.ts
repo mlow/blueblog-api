@@ -1,12 +1,15 @@
 import { gql, GraphQLScalarType } from "../mods";
 import { hash2id, id2hash } from "../utils";
 import { Kind, GraphQLError } from "graphql";
+import { GraphQLJSONObject as JSONObject } from "graphql-type-json";
 
 export const typeDefs = gql`
   """
   A date and time in UTC ISO8601 format. Ex: 2020-05-28T23:12:35.459Z
   """
   scalar DateTime
+
+  scalar JSONObject
 `;
 
 function resolveDateTime(value: string) {
@@ -33,6 +36,7 @@ export const resolvers = {
       return resolveDateTime(valueNode.value);
     },
   }),
+  JSONObject,
   ID: new GraphQLScalarType({
     name: "ID",
     serialize: (value: number) => id2hash(value),

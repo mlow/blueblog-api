@@ -6,10 +6,11 @@ const modules = [
   require("./pagination"),
   require("./authenticate"),
   require("./author"),
+  require("./encrypted"),
   require("./content"),
-  require("./edit"),
   require("./draft"),
   require("./blog_post"),
+  require("./edit"),
   require("./journal_entry"),
 ];
 

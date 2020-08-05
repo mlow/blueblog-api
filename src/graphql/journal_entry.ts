@@ -1,24 +1,26 @@
 import { gql } from "../mods";
 import { PagerInput, validatePagerInput } from "./pagination";
 import { Context } from "../model/index";
-import { JournalEntry } from "../model/journal_entry";
-import { resolveContent } from "./content";
+import { validateEncryptedInput } from "./encrypted";
 
 export const typeDefs = gql`
   """
   A journal entry.
   """
-  type JournalEntry implements Node & Content {
+  type JournalEntry implements Node & Encrypted {
     id: ID!
 
-    "The title of this journal entry."
-    title: String!
+    "Params used for encrypting this journal entry."
+    encryption_params: EncryptionParams!
 
-    "The content of this journal entry."
-    content(format: ContentFormat = MARKDOWN): String!
+    "base64 encoded encrypted contents of this journal entry."
+    ciphertext: String!
 
     "The date of this journal entry."
     date: DateTime!
+
+    "Whether this is a draft of a journal entry."
+    draft: Boolean!
   }
 
   type JournalEntryEdge {
@@ -27,26 +29,30 @@ export const typeDefs = gql`
   }
 
   type JournalEntryConnection {
-    total: Int!
     beforeEdges: [JournalEntryEdge!]!
     afterEdges: [JournalEntryEdge!]!
     pageInfo: PageInfo!
   }
 
   input CreateJournalEntryInput {
-    title: String!
-    content: String!
-    date: Boolean
+    encryption_params: JSONObject!
+    ciphertext: String!
+    date: DateTime
+    draft: Boolean = false
   }
 
   input UpdateJournalEntryInput {
-    title: String
-    content: String
+    encryption_params: JSONObject
+    ciphertext: String
     date: DateTime
+    draft: Boolean
   }
 
   type Query {
-    journal_entries(pager: Pager): JournalEntryConnection!
+    journal_entries(
+      pager: Pager
+      draft: Boolean = false
+    ): JournalEntryConnection!
   }
 
   type Mutation {
@@ -60,29 +66,23 @@ export const typeDefs = gql`
 `;
 
 export const resolvers = {
-  JournalEntry: {
-    content: (entry: JournalEntry, { format }: any) =>
-      resolveContent(format, entry.content),
-  },
   Query: {
     journal_entries: (
       obj: any,
-      { pager }: { pager: PagerInput },
+      { pager, draft }: { pager: PagerInput; draft: boolean },
       { model }: Context
     ) => {
-      return model.JournalEntry.connection(validatePagerInput(pager));
+      return model.JournalEntry.connection(validatePagerInput(pager), draft);
     },
   },
   Mutation: {
     create_journal_entry: (obj: any, { input }: any, { model }: Context) => {
+      validateEncryptedInput(input);
       return model.JournalEntry.create(input);
     },
-    update_journal_entry: (
-      obj: any,
-      { id, input }: any,
-      { model }: Context
-    ) => {
-      return model.JournalEntry.update(id, input);
+    update_journal_entry: (obj: any, args: any, { model }: Context) => {
+      validateEncryptedInput(args.input);
+      return model.JournalEntry.update(args.id, args.input);
     },
     delete_journal_entry: (obj: any, { id }: any, { model }: Context) => {
       return model.JournalEntry.delete(id);
