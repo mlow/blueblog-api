@@ -6,6 +6,7 @@ import { typeDefs, resolvers } from "./graphql/index";
 
 import { genModel, Models } from "./model/index";
 import { delay } from "./utils";
+import stoppable from "stoppable";
 
 declare module "koa" {
   interface BaseContext {
@@ -105,10 +106,30 @@ async function main() {
     },
   });
 
-  app.listen({ port: parseInt(process.env.LISTEN_PORT!) || 4000 }, () => {
-    console.log(
-      `Server listening at http://localhost:${process.env.LISTEN_PORT}\n---`
-    );
+  const server = stoppable(
+    app.listen({ port: parseInt(process.env.LISTEN_PORT!) || 4000 }, () => {
+      console.log(
+        `Server listening at http://localhost:${process.env.LISTEN_PORT}\n---`
+      );
+    })
+  );
+
+  ["SIGINT", "SIGTERM"].forEach((sig) => {
+    process.on(sig, async () => {
+      console.log("\nCaught", sig);
+      console.log("Shutting down...");
+      server.stop((error, gracefully) => {
+        if (error) {
+          console.error(error);
+          process.exit(2);
+        } else if (!gracefully) {
+          console.warn("Server was not shut down gracefully.");
+          process.exit(1);
+        } else {
+          process.exit(0);
+        }
+      });
+    });
   });
 }
 
