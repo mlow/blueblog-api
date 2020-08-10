@@ -5,6 +5,7 @@ import { applyAuth } from "./auth";
 import { typeDefs, resolvers } from "./graphql/index";
 
 import { genModel, Models } from "./model/index";
+import { delay } from "./utils";
 
 declare module "koa" {
   interface BaseContext {
@@ -37,12 +38,40 @@ export const knex = Knex({
     delete queries[__knexQueryUid];
   });
 
+const DB_CONNECT_ATTEMPTS = parseInt(process.env.DB_CONNECT_ATTEMPTS!) || 6;
+const DB_CONNECT_RETRY_DELAY =
+  parseInt(process.env.DB_CONNECT_RETRY_DELAY!) || 5;
+
+function waitConnection() {
+  return new Promise(async (resolve, reject) => {
+    let attempt = 0;
+    let retry;
+    do {
+      retry = ++attempt < DB_CONNECT_ATTEMPTS || DB_CONNECT_ATTEMPTS <= 0;
+      try {
+        await knex.raw("SELECT 1;");
+        resolve();
+        break;
+      } catch (error) {
+        console.error(
+          `Connection attempt ${attempt} out of ${DB_CONNECT_ATTEMPTS} failed: ${error.message}`
+        );
+        if (retry) {
+          console.error(`Trying again in ${DB_CONNECT_RETRY_DELAY} seconds...`);
+          await delay(DB_CONNECT_ATTEMPTS * 1000);
+        } else {
+          reject(error);
+        }
+      }
+    } while (retry);
+  });
+}
+
 async function main() {
-  console.log("Connecting to DB...");
   try {
-    await knex.raw("SELECT 1;");
+    await waitConnection();
   } catch (error) {
-    console.log(`Failed to connect to database: ${error.message}`);
+    console.error(`Could not connect: ${error.message}`);
     process.exit(1);
   }
 

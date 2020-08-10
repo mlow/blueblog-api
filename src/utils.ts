@@ -74,6 +74,10 @@ export function sluggify(str: string) {
   return slug(str);
 }
 
+export async function delay(ms: number) {
+  return new Promise((resolve) => setTimeout(() => resolve(), ms));
+}
+
 const hashids = new Hashids(process.env.HASHIDS_SALT || "blueblog", 8);
 export function id2hash(id: number) {
   return hashids.encode(id);
