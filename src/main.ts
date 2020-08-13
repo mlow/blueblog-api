@@ -68,6 +68,10 @@ function waitConnection() {
   });
 }
 
+const runtime: { server: undefined | stoppable.StoppableServer } = {
+  server: undefined,
+};
+
 async function main() {
   try {
     await waitConnection();
@@ -106,19 +110,22 @@ async function main() {
     },
   });
 
-  const server = stoppable(
+  runtime.server = stoppable(
     app.listen({ port: parseInt(process.env.LISTEN_PORT!) || 4000 }, () => {
       console.log(
         `Server listening at http://localhost:${process.env.LISTEN_PORT}\n---`
       );
     })
   );
+}
 
-  ["SIGINT", "SIGTERM"].forEach((sig) => {
-    process.on(sig, async () => {
-      console.log("\nCaught", sig);
-      console.log("Shutting down...");
-      server.stop((error, gracefully) => {
+["SIGINT", "SIGTERM"].forEach((sig) => {
+  process.on(sig, async () => {
+    console.log("\nCaught", sig);
+    console.log("Shutting down...");
+
+    if (runtime.server) {
+      runtime.server.stop((error, gracefully) => {
         if (error) {
           console.error(error);
           process.exit(2);
@@ -129,8 +136,10 @@ async function main() {
           process.exit(0);
         }
       });
-    });
+    } else {
+      process.exit();
+    }
   });
-}
+});
 
 main();
