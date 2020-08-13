@@ -1,16 +1,19 @@
-# build stage
-FROM node:14-alpine as builder
-WORKDIR /build
+# dev stage
+FROM node:14-alpine as dev
+WORKDIR /app
 RUN apk update && apk add --no-cache python3 make gcc g++
 COPY *.json ./
 RUN npm ci
-COPY src ./src
-# build project with tsc
-RUN npx tsc && npm prune --production
+COPY . .
+
+# build stage
+FROM dev as build
+RUN npx tsc && npm ci --only=production
 
 # production stage
 FROM node:14-alpine
-WORKDIR /blueblog
+WORKDIR /app
+
 RUN printf "%b" '#!'"/bin/sh\n\
 set -e\n\
 if [ ! -z \"\$RUN_MIGRATIONS\" ]; then\n\
@@ -20,9 +23,10 @@ fi\n\
 exec \"\$@\"\n" > docker-entrypoint.sh && chmod +x docker-entrypoint.sh
 
 # Copy over production modules and dist folder
-COPY --from=builder /build/package*.json ./
-COPY --from=builder /build/node_modules ./node_modules
-COPY --from=builder /build/dist ./dist
+COPY --from=build /app/package*.json ./
+COPY --from=build /app/node_modules ./node_modules
+COPY --from=build /app/dist ./dist
+COPY --from=build /app/db ./db
 
 EXPOSE 4000
 
