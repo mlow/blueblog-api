@@ -1,6 +1,4 @@
-import * as Knex from "knex";
-
-export async function up(knex: Knex): Promise<any> {
+exports.up = async function(knex) {
   await knex.schema.raw(`
     CREATE TYPE type AS ENUM (
       'Author',
@@ -72,7 +70,7 @@ export async function up(knex: Knex): Promise<any> {
   `);
 }
 
-export async function down(knex: Knex): Promise<any> {
+exports.down = async function(knex) {
   await knex.schema.dropTable("draft");
   await knex.schema.dropTable("edit");
   await knex.schema.dropTable("journal_entry");

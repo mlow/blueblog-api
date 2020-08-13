@@ -1,9 +1,3 @@
-import dotenv from "dotenv";
-
-// knex CLI doesn't seem to respect the --cwd option and will chdir to
-// whever the knexfile is
-dotenv.config({ path: "../../.env" });
-
 module.exports = {
   client: "pg",
   connection: {
@@ -11,7 +5,7 @@ module.exports = {
     database: process.env.DB_NAME,
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
-    port: parseInt(process.env.DB_PORT!) || 5432,
+    port: parseInt(process.env.DB_PORT) || 5432,
   },
   pool: {
     min: 2,

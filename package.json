@@ -50,10 +50,10 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "start": "node -r dotenv/config -r ts-node/register src/main.ts",
-    "serve": "nodemon",
-    "knex:migrate:latest": "knex --knexfile dist/db/knexfile.js migrate:latest",
-    "knex:migrate:up": "knex --knexfile dist/db/knexfile.js migrate:up",
-    "knex:migrate:down": "knex --knexfile dist/db/knexfile.js migrate:down"
+    "serve": "npm run knex:migrate:latest && nodemon",
+    "knex:migrate:latest": "knex --knexfile db/knexfile.js migrate:latest",
+    "knex:migrate:up": "knex --knexfile db/knexfile.js migrate:up",
+    "knex:migrate:down": "knex --knexfile db/knexfile.js migrate:down"
   },
   "nodemonConfig": {
     "watch": [
